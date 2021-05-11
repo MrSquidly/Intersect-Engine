@@ -1,14 +1,11 @@
-﻿using System;
+﻿
+using System;
 
 namespace Intersect.Network
 {
-
     public interface IConnection : IDisposable
     {
-
         Guid Guid { get; }
-
-        Ceras Ceras { get; }
 
         bool IsConnected { get; }
 
@@ -16,14 +13,14 @@ namespace Intersect.Network
 
         int Port { get; }
 
-        bool Send(IPacket packet);
+        ConnectionStatistics Statistics { get; }
+
+        bool Send(IPacket packet, TransmissionMode mode = TransmissionMode.All);
 
         void HandleConnected();
 
         void HandleApproved();
 
         void HandleDisconnected();
-
     }
-
 }

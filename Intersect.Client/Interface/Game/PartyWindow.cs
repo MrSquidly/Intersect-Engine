@@ -72,7 +72,7 @@ namespace Intersect.Client.Interface.Game
             mHpBarContainer.Clear();
             mHpBar.Clear();
 
-            for (var i = 0; i < 4; i++)
+            for (var i = 0; i < Options.Party.MaximumMembers; i++)
             {
                 //Labels
                 mLblnames.Add(new Label(mPartyWindow, "MemberName" + i));
@@ -171,7 +171,7 @@ namespace Intersect.Client.Interface.Game
             mLeader.Hide();
             mLeaderText.Hide();
             mLeaveButton.Hide();
-            for (var i = 0; i < 4; i++)
+            for (var i = 0; i < Options.Instance.PartyOpts.MaximumMembers; i++)
             {
                 mHpBarContainer[i].Hide();
                 mHpLabel[i].Hide();
@@ -192,7 +192,7 @@ namespace Intersect.Client.Interface.Game
                 mLeaderText.Show();
                 mLeaveButton.Show();
 
-                for (var i = 0; i < 4; i++)
+                for (var i = 0; i < Options.Instance.PartyOpts.MaximumMembers; i++)
                 {
                     if (i < Globals.Me.Party.Count)
                     {

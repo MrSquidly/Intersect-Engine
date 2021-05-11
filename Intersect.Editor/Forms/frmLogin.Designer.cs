@@ -176,7 +176,6 @@ namespace Intersect.Editor.Forms
             this.Controls.Add(this.txtUsername);
             this.Controls.Add(this.lblStatus);
             this.FormBorderStyle = System.Windows.Forms.FormBorderStyle.FixedSingle;
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.KeyPreview = true;
             this.MaximizeBox = false;
             this.Name = "FrmLogin";
@@ -191,8 +190,6 @@ namespace Intersect.Editor.Forms
         }
 
         #endregion
-
-        private Label lblStatus;
         private Timer tmrSocket;
         private DarkTextBox txtUsername;
         private DarkTextBox txtPassword;
@@ -203,5 +200,6 @@ namespace Intersect.Editor.Forms
         private Label lblPassword;
         private Label lblGettingStarted;
         private DarkCheckBox chkRemember;
+        public Label lblStatus;
     }
 }

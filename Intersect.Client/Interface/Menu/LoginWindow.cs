@@ -111,7 +111,6 @@ namespace Intersect.Client.Interface.Menu
 
             mLoginWindow.LoadJsonUi(GameContentManager.UI.Menu, Graphics.Renderer.GetResolutionString());
 
-            //Hide Forgot Password Button if not supported by server
         }
 
         public bool IsHidden => mLoginWindow.IsHidden;
@@ -131,14 +130,19 @@ namespace Intersect.Client.Interface.Menu
         //Methods
         public void Update()
         {
-            if (Networking.Network.Connected)
+            if (!Networking.Network.Connected)
             {
+                Hide();
+                mMainMenu.Show();
+                Interface.MsgboxErrors.Add(new KeyValuePair<string, string>("", Strings.Errors.lostconnection));
                 return;
             }
 
-            Hide();
-            mMainMenu.Show();
-            Interface.MsgboxErrors.Add(new KeyValuePair<string, string>("", Strings.Errors.lostconnection));
+            // Re-Enable our buttons button if we're not waiting for the server anymore with it disabled.
+            if (!Globals.WaitingOnServer && mLoginBtn.IsDisabled)
+            {
+                mLoginBtn.Enable();
+            }
         }
 
         public void Hide()
@@ -152,6 +156,16 @@ namespace Intersect.Client.Interface.Menu
             if (!mForgotPassswordButton.IsHidden)
             {
                 mForgotPassswordButton.IsHidden = !Options.Instance.SmtpValid;
+            }
+
+            // Set focus to the appropriate elements.
+            if (!string.IsNullOrWhiteSpace(mUsernameTextbox.Text))
+            {
+                mPasswordTextbox.Focus();
+            }
+            else
+            {
+                mUsernameTextbox.Focus();
             }
         }
 
@@ -222,6 +236,7 @@ namespace Intersect.Client.Interface.Menu
             PacketSender.SendLogin(mUsernameTextbox?.Text, password);
             SaveCredentials();
             Globals.WaitingOnServer = true;
+            mLoginBtn.Disable();
             ChatboxMsg.ClearMessages();
         }
 

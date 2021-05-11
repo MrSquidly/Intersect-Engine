@@ -60,6 +60,8 @@ namespace Intersect.Editor.Forms.Editors.Events
 
         public bool NewEvent;
 
+        public int mOldSelectedCommand;
+
         private void txtEventname_TextChanged(object sender, EventArgs e)
         {
             MyEvent.Name = txtEventname.Text;
@@ -69,6 +71,7 @@ namespace Intersect.Editor.Forms.Editors.Events
         private void lstEventCommands_SelectedIndexChanged(object sender, EventArgs e)
         {
             mCurrentCommand = lstEventCommands.SelectedIndex;
+            mOldSelectedCommand = lstEventCommands.SelectedIndex;
         }
 
         private void lstEventCommands_KeyDown(object sender, KeyEventArgs e)
@@ -97,6 +100,8 @@ namespace Intersect.Editor.Forms.Editors.Events
             HandleRemoveCommand(mCommandProperties[mCurrentCommand].Cmd);
             mCommandProperties[mCurrentCommand].MyList.Remove(mCommandProperties[mCurrentCommand].Cmd);
             mCurrentCommand = -1;
+
+            mOldSelectedCommand = lstEventCommands.SelectedIndex;
             ListPageCommands();
         }
 
@@ -136,6 +141,8 @@ namespace Intersect.Editor.Forms.Editors.Events
             btnCopy.Enabled = btnEdit.Enabled;
             btnCut.Enabled = btnEdit.Enabled;
             btnDelete.Enabled = true;
+
+            mOldSelectedCommand = lstEventCommands.SelectedIndex;
         }
 
         private void lstEventCommands_DoubleClick(object sender, EventArgs e)
@@ -162,6 +169,8 @@ namespace Intersect.Editor.Forms.Editors.Events
                 DisableButtons();
                 mIsInsert = true;
             }
+
+            mOldSelectedCommand = lstEventCommands.SelectedIndex;
         }
 
         /// <summary>
@@ -206,14 +215,14 @@ namespace Intersect.Editor.Forms.Editors.Events
                     graphics.DrawImage(
                         sourceBitmap,
                         new Rectangle(
-                            pnlPreview.Width / 2 - sourceBitmap.Width / 4 / 2,
-                            pnlPreview.Height / 2 - sourceBitmap.Height / 4 / 2, sourceBitmap.Width / 4,
-                            sourceBitmap.Height / 4
+                            pnlPreview.Width / 2 - sourceBitmap.Width / Options.Instance.Sprites.NormalFrames / 2,
+                            pnlPreview.Height / 2 - sourceBitmap.Height / Options.Instance.Sprites .Directions / 2, sourceBitmap.Width / Options.Instance.Sprites.NormalFrames,
+                            sourceBitmap.Height / Options.Instance.Sprites.Directions
                         ),
                         new Rectangle(
-                            CurrentPage.Graphic.X * sourceBitmap.Width / 4,
-                            CurrentPage.Graphic.Y * sourceBitmap.Height / 4, sourceBitmap.Width / 4,
-                            sourceBitmap.Height / 4
+                            CurrentPage.Graphic.X * sourceBitmap.Width / Options.Instance.Sprites.NormalFrames,
+                            CurrentPage.Graphic.Y * sourceBitmap.Height / Options.Instance.Sprites.Directions, sourceBitmap.Width / Options.Instance.Sprites.NormalFrames,
+                            sourceBitmap.Height / Options.Instance.Sprites.Directions
                         ), GraphicsUnit.Pixel
                     );
                 }
@@ -711,6 +720,34 @@ namespace Intersect.Editor.Forms.Editors.Events
                     tmpCommand = new ShowPlayerCommand();
 
                     break;
+
+                case EventCommandType.ChangePlayerColor:
+                    tmpCommand = new ChangePlayerColorCommand();
+
+                    break;
+
+                case EventCommandType.ChangeName:
+                    tmpCommand = new ChangeNameCommand(CurrentPage.CommandLists);
+
+                    break;
+
+                case EventCommandType.CreateGuild:
+                    tmpCommand = new CreateGuildCommand(CurrentPage.CommandLists);
+
+                    break;
+
+                case EventCommandType.DisbandGuild:
+                    tmpCommand = new DisbandGuildCommand(CurrentPage.CommandLists);
+
+                    break;
+                case EventCommandType.OpenGuildBank:
+                    tmpCommand = new OpenGuildBankCommand();
+
+                    break;
+                case EventCommandType.SetGuildBankSlots:
+                    tmpCommand = new SetGuildBankSlotsCommand();
+
+                    break;
                 default:
                     throw new ArgumentOutOfRangeException();
             }
@@ -749,6 +786,8 @@ namespace Intersect.Editor.Forms.Editors.Events
         {
             InitializeComponent();
             mCurrentMap = currentMap;
+			
+			this.Icon = Properties.Resources.Icon;
         }
 
         private void frmEvent_Load(object sender, EventArgs e)
@@ -995,18 +1034,7 @@ namespace Intersect.Editor.Forms.Editors.Events
                 cmbTrigger.SelectedIndex = (int) CurrentPage.Trigger;
             }
 
-            cmbTriggerVal.Hide();
-            lblTriggerVal.Hide();
-            if (MyEvent.CommonEvent)
-            {
-                if (cmbTrigger.SelectedIndex == (int) CommonEventTrigger.SlashCommand)
-                {
-                    txtCommand.Show();
-                    txtCommand.Text = CurrentPage.TriggerCommand;
-                    lblCommand.Show();
-                    lblCommand.Text = Strings.EventEditor.command;
-                }
-            }
+            SetupTrigger();
 
             cmbPreviewFace.SelectedIndex = cmbPreviewFace.Items.IndexOf(TextUtils.NullToNone(CurrentPage.FaceGraphic));
             if (cmbPreviewFace.SelectedIndex == -1)
@@ -1077,6 +1105,16 @@ namespace Intersect.Editor.Forms.Editors.Events
             CommandPrinter.PrintCommandList(
                 CurrentPage, CurrentPage.CommandLists.Values.First(), " ", lstEventCommands, mCommandProperties, MyMap
             );
+
+            // Reset our view to roughly where the user left off.
+            if (mOldSelectedCommand > (lstEventCommands.Items.Count -1))
+            {
+                lstEventCommands.SelectedIndex = lstEventCommands.Items.Count - 1;
+            }
+            else
+            {
+                lstEventCommands.SelectedIndex = mOldSelectedCommand;
+            }
         }
 
         /// <summary>
@@ -1277,6 +1315,30 @@ namespace Intersect.Editor.Forms.Editors.Events
                     break;
                 case EventCommandType.EndQuest:
                     cmdWindow = new EventCommandEndQuest((EndQuestCommand) command, this);
+
+                    break;
+                case EventCommandType.ChangePlayerColor:
+                    cmdWindow = new EventCommandChangePlayerColor((ChangePlayerColorCommand)command, this);
+
+                    break;
+                case EventCommandType.ChangeName:
+                    cmdWindow = new EventCommandChangeName((ChangeNameCommand)command, CurrentPage, this);
+
+                    break;
+
+                case EventCommandType.CreateGuild:
+                    cmdWindow = new EventCommandCreateGuild((CreateGuildCommand)command, CurrentPage, this);
+
+                    break;
+
+                case EventCommandType.DisbandGuild:
+
+                    break;
+                case EventCommandType.OpenGuildBank:
+
+                    break;
+                case EventCommandType.SetGuildBankSlots:
+                    cmdWindow = new EventCommandSetGuildBankSlots((SetGuildBankSlotsCommand)command, CurrentPage, this);
 
                     break;
                 default:
@@ -1679,19 +1741,58 @@ namespace Intersect.Editor.Forms.Editors.Events
                 CurrentPage.Trigger = (EventTrigger) cmbTrigger.SelectedIndex;
             }
 
+            SetupTrigger();
+        }
+
+        private void SetupTrigger()
+        {
             cmbTriggerVal.Hide();
             lblTriggerVal.Hide();
             txtCommand.Hide();
             lblCommand.Hide();
+            lblVariableTrigger.Hide();
+            cmbVariable.Hide();
 
             if (MyEvent.CommonEvent)
             {
-                if (cmbTrigger.SelectedIndex == (int) CommonEventTrigger.SlashCommand)
+                cmbVariable.Items.Clear();
+
+
+                if (cmbTrigger.SelectedIndex == (int)CommonEventTrigger.SlashCommand)
                 {
                     txtCommand.Show();
                     txtCommand.Text = CurrentPage.TriggerCommand;
                     lblCommand.Show();
                     lblCommand.Text = Strings.EventEditor.command;
+                }
+                else if (cmbTrigger.SelectedIndex == (int)CommonEventTrigger.PlayerVariableChange)
+                {
+                    cmbVariable.Show();
+                    cmbVariable.Items.Add(Strings.General.none);
+                    cmbVariable.Items.AddRange(PlayerVariableBase.Names);
+                    cmbVariable.SelectedIndex = PlayerVariableBase.ListIndex(CurrentPage.TriggerId) + 1;
+                }
+                else if (cmbTrigger.SelectedIndex == (int)CommonEventTrigger.ServerVariableChange)
+                {
+                    cmbVariable.Show();
+                    cmbVariable.Items.Add(Strings.General.none);
+                    cmbVariable.Items.AddRange(ServerVariableBase.Names);
+                    cmbVariable.SelectedIndex = ServerVariableBase.ListIndex(CurrentPage.TriggerId) + 1;
+                }
+            }
+        }
+
+        private void cmbVariable_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            if (MyEvent.CommonEvent)
+            {
+                if (cmbTrigger.SelectedIndex == (int)CommonEventTrigger.PlayerVariableChange)
+                {
+                    CurrentPage.TriggerId = PlayerVariableBase.IdFromList(cmbVariable.SelectedIndex - 1);
+                }
+                else if (cmbTrigger.SelectedIndex == (int)CommonEventTrigger.ServerVariableChange)
+                {
+                    CurrentPage.TriggerId = ServerVariableBase.IdFromList(cmbVariable.SelectedIndex - 1);
                 }
             }
         }
@@ -1764,7 +1865,6 @@ namespace Intersect.Editor.Forms.Editors.Events
         }
 
         #endregion
-
     }
 
     public class CommandListProperties

@@ -29,11 +29,17 @@ _Licensed under MIT to allow for public distribution of binaries without disclos
 #### [Intersect (Core)/LICENSE.md](/Intersect%20(Core)/LICENSE.md)
 The backbone library that contains (most) of the common code between all of the projects.
 
+#### [Intersect.Building/LICENSE.md (GPL v3)](/Intersect.Building/LICENSE.md)
+The build scripts library that is used in the compilation of other projects.
+
 #### [Intersect.Network/LICENSE.md (MIT)](/Intersect.Network/LICENSE.md)
 The common networking library for all "client" applications (both the client and the editor).
 
 #### [Intersect.Client/LICENSE.md (MIT)](/Intersect.Client/LICENSE.md)
 The game client application that is intended to be distributed to players.
+
+#### [Intersect.Client.Framework/LICENSE.md (MIT)](/Intersect.Client.Framework/LICENSE.md)
+The game client framework that is intended to be distributed to players.
 
 ### Non-publicly distributed compilables (GPL v3)
 
@@ -44,6 +50,9 @@ The game editor application that content developers for games will use to do the
 
 #### [Intersect.Server/LICENSE.md (GPL v3)](/Intersect.Server/LICENSE.md)
 The server application that is not publicly distributed and is running in secured environments.
+
+#### [Intersect.Server.Framework/LICENSE.md (MIT)](/Intersect.Server.Framework/LICENSE.md)
+The game server framework that is not publicly distributed and is used in secured environments.
 
 
 

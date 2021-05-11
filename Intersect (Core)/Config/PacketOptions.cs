@@ -1,50 +1,22 @@
-﻿using Newtonsoft.Json;
-
-namespace Intersect.Config
+﻿namespace Intersect.Config
 {
-
     public class PacketOptions
     {
+        #region "Packet Batching"
+        /// <summary>
+        /// If this value is true, player movements will be sent in the batch with npc/event movement when maps update instead of in realtime which will reduce workload on the network pool at the expense of being slightly delayed
+        /// </summary>
+        public bool BatchPlayerMovementPackets { get; set; } = true;
 
-        [JsonProperty("EditorFloodThreshholds")]
-        public FloodThreshholds EditorThreshholds = FloodThreshholds.Editor();
+        /// <summary>
+        /// If this value is true, action messages will be sent in a batch maps update instead of in realtime which will reduce workload on the network pool at the expense of being slightly delayed 
+        /// </summary>
+        public bool BatchActionMessagePackets { get; set; } = true;
 
-        [JsonProperty("PlayerFloodThreshholds")]
-        public FloodThreshholds PlayerThreshholds = new FloodThreshholds();
-
-        [JsonProperty("FloodThreshholds")] public FloodThreshholds Threshholds = FloodThreshholds.NotLoggedIn();
-
+        /// <summary>
+        /// If this value is true, animation packetswill be sent in a batch maps update instead of in realtime which will reduce workload on the network pool at the expense of being slightly delayed 
+        /// </summary>
+        public bool BatchAnimationPackets { get; set; } = true;
+        #endregion
     }
-
-    public class FloodThreshholds
-    {
-
-        public int MaxPacketSize { get; set; } = 10240;
-
-        public int MaxPacketPerSec { get; set; } = 30;
-
-        public int KickAvgPacketPerSec { get; set; } = 20;
-
-        public static FloodThreshholds Editor()
-        {
-            return new FloodThreshholds()
-            {
-                MaxPacketSize = int.MaxValue,
-                MaxPacketPerSec = int.MaxValue,
-                KickAvgPacketPerSec = int.MaxValue
-            };
-        }
-
-        public static FloodThreshholds NotLoggedIn()
-        {
-            return new FloodThreshholds()
-            {
-                MaxPacketSize = 10240,
-                MaxPacketPerSec = 5,
-                KickAvgPacketPerSec = 3,
-            };
-        }
-
-    }
-
 }

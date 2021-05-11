@@ -5,6 +5,8 @@ using Intersect.Client.Framework.Graphics;
 using Intersect.Client.General;
 using Intersect.Client.Interface.Game.Chat;
 using Intersect.Client.Localization;
+using Intersect.Compression;
+using Intersect.IO.Files;
 using Intersect.Logging;
 
 using Microsoft.Xna.Framework;
@@ -12,10 +14,8 @@ using Microsoft.Xna.Framework.Graphics;
 
 namespace Intersect.Client.MonoGame.Graphics
 {
-
     public class MonoTexture : GameTexture
     {
-
         private GraphicsDevice mGraphicsDevice;
 
         private int mHeight = -1;
@@ -28,17 +28,30 @@ namespace Intersect.Client.MonoGame.Graphics
 
         private GameTexturePackFrame mPackFrame;
 
-        private string mPath = "";
+        private readonly string mPath = "";
+
+        private readonly string mRealPath = "";
 
         private Texture2D mTexture;
 
         private int mWidth = -1;
 
-        public MonoTexture(GraphicsDevice graphicsDevice, string filename)
+        private readonly Func<Stream> CreateStream;
+
+        public MonoTexture(GraphicsDevice graphicsDevice, string filename, string realPath)
         {
             mGraphicsDevice = graphicsDevice;
             mPath = filename;
+            mRealPath = realPath;
             mName = Path.GetFileName(filename);
+        }
+
+        public MonoTexture(GraphicsDevice graphicsDevice, string assetName, Func<Stream> createStream)
+        {
+            mGraphicsDevice = graphicsDevice;
+            mPath = assetName;
+            mName = assetName;
+            CreateStream = createStream;
         }
 
         public MonoTexture(GraphicsDevice graphicsDevice, string filename, GameTexturePackFrame packFrame)
@@ -51,6 +64,19 @@ namespace Intersect.Client.MonoGame.Graphics
             mHeight = packFrame.SourceRect.Height;
         }
 
+        private void Load(Stream stream)
+        {
+            mTexture = Texture2D.FromStream(mGraphicsDevice, stream);
+            if (mTexture == null)
+            {
+                throw new InvalidDataException("Failed to load texture, received no data.");
+            }
+
+            mWidth = mTexture.Width;
+            mHeight = mTexture.Height;
+            mLoadError = false;
+        }
+
         public void LoadTexture()
         {
             if (mTexture != null)
@@ -58,39 +84,66 @@ namespace Intersect.Client.MonoGame.Graphics
                 return;
             }
 
+            if (CreateStream != null)
+            {
+                using (var stream = CreateStream())
+                {
+                    Load(stream);
+                    return;
+                }
+            }
+
             if (mPackFrame != null)
             {
-                ((MonoTexture) mPackFrame.PackTexture).LoadTexture();
+                ((MonoTexture) mPackFrame.PackTexture)?.LoadTexture();
 
                 return;
             }
 
             mLoadError = true;
-            if (!File.Exists(mPath))
+            if (string.IsNullOrWhiteSpace(mRealPath))
             {
+                Log.Error("Invalid texture path (empty/null).");
+
                 return;
             }
 
-            using (var fileStream = new FileStream(mPath, FileMode.Open, FileAccess.Read, FileShare.Read))
+            var relativePath = FileSystemHelper.RelativePath(Directory.GetCurrentDirectory(), mPath);
+
+            if (!File.Exists(mRealPath))
+            {
+                Log.Error($"Texture does not exist: {relativePath}");
+
+                return;
+            }
+
+            using (var fileStream = File.Open(mRealPath, FileMode.Open, FileAccess.Read, FileShare.Read))
             {
                 try
                 {
-                    mTexture = Texture2D.FromStream(mGraphicsDevice, fileStream);
-                    if (mTexture != null)
+                    if (Path.GetExtension(mPath) == ".asset")
                     {
-                        mWidth = mTexture.Width;
-                        mHeight = mTexture.Height;
-                        mLoadError = false;
+                        using (var gzip = GzipCompression.CreateDecompressedFileStream(fileStream))
+                        {
+                            Load(gzip);
+                        }
+                    }
+                    else
+                    {
+                        Load(fileStream);
                     }
                 }
-                catch (Exception ex)
+                catch (Exception exception)
                 {
-                    //Failed to load texture.. lets log like we do with audio
-                    Log.Error($"Error loading '{mName}'.", ex);
+                    Log.Error(
+                        exception,
+                        $"Failed to load texture ({FileSystemHelper.FormatSize(fileStream.Length)}): {relativePath}"
+                    );
+
                     ChatboxMsg.AddMessage(
                         new ChatboxMsg(
                             Strings.Errors.LoadFile.ToString(Strings.Words.lcase_sprite) + " [" + mName + "]",
-                            new Color(0xBF, 0x0, 0x0)
+                            new Color(0xBF, 0x0, 0x0), Enums.ChatMessageType.Error
                         )
                     );
                 }
@@ -223,7 +276,5 @@ namespace Intersect.Client.MonoGame.Graphics
             mTexture.Dispose();
             mTexture = null;
         }
-
     }
-
 }

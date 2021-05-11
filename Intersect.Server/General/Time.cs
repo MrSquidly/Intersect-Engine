@@ -16,6 +16,12 @@ namespace Intersect.Server.General
 
         private static long sUpdateTime;
 
+        public static string Hour = "00";
+        public static string MilitaryHour = "00";
+        public static string Minute = "00";
+        public static string Second = "00";
+
+
         public static void Init()
         {
             var timeBase = TimeBase.GetTimeBase();
@@ -42,7 +48,7 @@ namespace Intersect.Server.General
         public static void Update()
         {
             var timeBase = TimeBase.GetTimeBase();
-            if (Globals.Timing.TimeMs > sUpdateTime)
+            if (Globals.Timing.Milliseconds > sUpdateTime)
             {
                 if (!timeBase.SyncTime)
                 {
@@ -68,7 +74,12 @@ namespace Intersect.Server.General
                     PacketSender.SendTimeToAll();
                 }
 
-                sUpdateTime = Globals.Timing.TimeMs + 1000;
+                Hour = sGameTime.ToString("%h");
+                MilitaryHour = sGameTime.ToString("HH");
+                Minute = sGameTime.ToString("mm");
+                Second = sGameTime.ToString("ss");
+
+                sUpdateTime = Globals.Timing.Milliseconds + 1000;
             }
         }
 

@@ -9,8 +9,9 @@ using Intersect.Server.Maps;
 namespace Intersect.Server.Classes.Maps
 {
 
-    public class MapTrapInstance
+    public partial class MapTrapInstance
     {
+        public Guid Id { get; } = Guid.NewGuid();
 
         private long Duration;
 
@@ -32,7 +33,7 @@ namespace Intersect.Server.Classes.Maps
         {
             Owner = owner;
             ParentSpell = parentSpell;
-            Duration = Globals.Timing.TimeMs + ParentSpell.Combat.TrapDuration;
+            Duration = Globals.Timing.Milliseconds + ParentSpell.Combat.TrapDuration;
             MapId = mapId;
             X = x;
             Y = y;
@@ -75,7 +76,7 @@ namespace Intersect.Server.Classes.Maps
                 MapInstance.Get(MapId).RemoveTrap(this);
             }
 
-            if (Globals.Timing.TimeMs > Duration)
+            if (Globals.Timing.Milliseconds > Duration)
             {
                 MapInstance.Get(MapId).RemoveTrap(this);
             }

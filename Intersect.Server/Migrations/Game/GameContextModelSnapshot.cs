@@ -211,6 +211,8 @@ namespace Intersect.Server.Migrations.Game
 
                     b.Property<int>("Cooldown");
 
+                    b.Property<string>("CooldownGroup");
+
                     b.Property<int>("CritChance");
 
                     b.Property<double>("CritMultiplier");
@@ -220,8 +222,6 @@ namespace Intersect.Server.Migrations.Game
                     b.Property<int>("DamageType");
 
                     b.Property<string>("Description");
-
-                    b.Property<bool>("DestroySpell");
 
                     b.Property<Guid>("EquipmentAnimationId")
                         .HasColumnName("EquipmentAnimation");
@@ -237,7 +237,14 @@ namespace Intersect.Server.Migrations.Game
 
                     b.Property<string>("Icon");
 
+                    b.Property<bool>("IgnoreCooldownReduction");
+
+                    b.Property<bool>("IgnoreGlobalCooldown");
+
                     b.Property<int>("ItemType");
+
+                    b.Property<string>("JsonColor")
+                        .HasColumnName("Color");
 
                     b.Property<string>("JsonUsageRequirements")
                         .HasColumnName("UsageRequirements");
@@ -264,6 +271,9 @@ namespace Intersect.Server.Migrations.Game
                     b.Property<int>("Scaling");
 
                     b.Property<int>("ScalingStat");
+
+                    b.Property<bool>("SingleUse")
+                        .HasColumnName("DestroySpell");
 
                     b.Property<int>("SlotCount");
 
@@ -347,8 +357,13 @@ namespace Intersect.Server.Migrations.Game
 
                     b.Property<string>("Folder");
 
+                    b.Property<bool>("IndividualizedLoot");
+
                     b.Property<string>("JsonAggroList")
                         .HasColumnName("AggroList");
+
+                    b.Property<string>("JsonColor")
+                        .HasColumnName("Color");
 
                     b.Property<string>("JsonDrops")
                         .HasColumnName("Drops");
@@ -381,6 +396,8 @@ namespace Intersect.Server.Migrations.Game
 
                     b.Property<string>("RegenJson")
                         .HasColumnName("VitalRegen");
+
+                    b.Property<int>("ResetRadius");
 
                     b.Property<int>("Scaling");
 
@@ -482,12 +499,18 @@ namespace Intersect.Server.Migrations.Game
 
                     b.Property<string>("BeforeDescription");
 
+                    b.Property<string>("CompletedCategory");
+
+                    b.Property<bool>("DoNotShowUnlessRequirementsMet");
+
                     b.Property<string>("EndDescription");
 
                     b.Property<Guid>("EndEventId")
                         .HasColumnName("EndEvent");
 
                     b.Property<string>("Folder");
+
+                    b.Property<string>("InProgressCategory");
 
                     b.Property<string>("InProgressDescription");
 
@@ -499,6 +522,8 @@ namespace Intersect.Server.Migrations.Game
                     b.Property<bool>("LogBeforeOffer");
 
                     b.Property<string>("Name");
+
+                    b.Property<int>("OrderValue");
 
                     b.Property<bool>("Quitable");
 
@@ -513,6 +538,8 @@ namespace Intersect.Server.Migrations.Game
                         .HasColumnName("Tasks");
 
                     b.Property<long>("TimeCreated");
+
+                    b.Property<string>("UnstartedCategory");
 
                     b.HasKey("Id");
 
@@ -625,6 +652,8 @@ namespace Intersect.Server.Migrations.Game
 
                     b.Property<int>("CooldownDuration");
 
+                    b.Property<string>("CooldownGroup");
+
                     b.Property<string>("Description");
 
                     b.Property<Guid>("EventId")
@@ -636,6 +665,10 @@ namespace Intersect.Server.Migrations.Game
                         .HasColumnName("HitAnimation");
 
                     b.Property<string>("Icon");
+
+                    b.Property<bool>("IgnoreCooldownReduction");
+
+                    b.Property<bool>("IgnoreGlobalCooldown");
 
                     b.Property<string>("JsonCastRequirements")
                         .HasColumnName("CastRequirements");

@@ -99,6 +99,8 @@ namespace Intersect.Editor.Forms
             this.hideTilePreviewToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.hideResourcesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.mapGridToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.hideEventsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.layersToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.contentEditorsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.animationEditorToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.classEditorToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
@@ -120,7 +122,7 @@ namespace Intersect.Editor.Forms
             this.aboutToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.menuStrip = new DarkUI.Controls.DarkMenuStrip();
             this.toolsToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
-            this.packClientTexturesToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
+            this.packageUpdateToolStripMenuItem = new System.Windows.Forms.ToolStripMenuItem();
             this.statusStrip1.SuspendLayout();
             this.toolStrip1.SuspendLayout();
             this.menuStrip.SuspendLayout();
@@ -625,7 +627,7 @@ namespace Intersect.Editor.Forms
             // undoToolStripMenuItem
             // 
             this.undoToolStripMenuItem.Enabled = false;
-            this.undoToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.undoToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(153)))), ((int)(((byte)(153)))), ((int)(((byte)(153)))));
             this.undoToolStripMenuItem.Name = "undoToolStripMenuItem";
             this.undoToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
             this.undoToolStripMenuItem.Text = "Undo";
@@ -634,7 +636,7 @@ namespace Intersect.Editor.Forms
             // redoToolStripMenuItem
             // 
             this.redoToolStripMenuItem.Enabled = false;
-            this.redoToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.redoToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(153)))), ((int)(((byte)(153)))), ((int)(((byte)(153)))));
             this.redoToolStripMenuItem.Name = "redoToolStripMenuItem";
             this.redoToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
             this.redoToolStripMenuItem.Text = "Redo";
@@ -643,7 +645,7 @@ namespace Intersect.Editor.Forms
             // cutToolStripMenuItem
             // 
             this.cutToolStripMenuItem.Enabled = false;
-            this.cutToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.cutToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(153)))), ((int)(((byte)(153)))), ((int)(((byte)(153)))));
             this.cutToolStripMenuItem.Name = "cutToolStripMenuItem";
             this.cutToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
             this.cutToolStripMenuItem.Text = "Cut";
@@ -652,7 +654,7 @@ namespace Intersect.Editor.Forms
             // copyToolStripMenuItem
             // 
             this.copyToolStripMenuItem.Enabled = false;
-            this.copyToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.copyToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(153)))), ((int)(((byte)(153)))), ((int)(((byte)(153)))));
             this.copyToolStripMenuItem.Name = "copyToolStripMenuItem";
             this.copyToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
             this.copyToolStripMenuItem.Text = "Copy";
@@ -661,7 +663,7 @@ namespace Intersect.Editor.Forms
             // pasteToolStripMenuItem
             // 
             this.pasteToolStripMenuItem.Enabled = false;
-            this.pasteToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.pasteToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(153)))), ((int)(((byte)(153)))), ((int)(((byte)(153)))));
             this.pasteToolStripMenuItem.Name = "pasteToolStripMenuItem";
             this.pasteToolStripMenuItem.Size = new System.Drawing.Size(132, 22);
             this.pasteToolStripMenuItem.Text = "Paste";
@@ -717,7 +719,9 @@ namespace Intersect.Editor.Forms
             this.hideOverlayToolStripMenuItem,
             this.hideTilePreviewToolStripMenuItem,
             this.hideResourcesToolStripMenuItem,
-            this.mapGridToolStripMenuItem});
+            this.mapGridToolStripMenuItem,
+            this.hideEventsToolStripMenuItem,
+            this.layersToolStripMenuItem});
             this.viewToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.viewToolStripMenuItem.Name = "viewToolStripMenuItem";
             this.viewToolStripMenuItem.Size = new System.Drawing.Size(44, 20);
@@ -729,7 +733,7 @@ namespace Intersect.Editor.Forms
             this.hideDarknessToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.hideDarknessToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.hideDarknessToolStripMenuItem.Name = "hideDarknessToolStripMenuItem";
-            this.hideDarknessToolStripMenuItem.Size = new System.Drawing.Size(137, 22);
+            this.hideDarknessToolStripMenuItem.Size = new System.Drawing.Size(136, 22);
             this.hideDarknessToolStripMenuItem.Text = "Darkness";
             this.hideDarknessToolStripMenuItem.Click += new System.EventHandler(this.hideDarknessToolStripMenuItem_Click);
             // 
@@ -739,7 +743,7 @@ namespace Intersect.Editor.Forms
             this.hideFogToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.hideFogToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.hideFogToolStripMenuItem.Name = "hideFogToolStripMenuItem";
-            this.hideFogToolStripMenuItem.Size = new System.Drawing.Size(137, 22);
+            this.hideFogToolStripMenuItem.Size = new System.Drawing.Size(136, 22);
             this.hideFogToolStripMenuItem.Text = "Fog";
             this.hideFogToolStripMenuItem.Click += new System.EventHandler(this.hideFogToolStripMenuItem_Click);
             // 
@@ -749,7 +753,7 @@ namespace Intersect.Editor.Forms
             this.hideOverlayToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.hideOverlayToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.hideOverlayToolStripMenuItem.Name = "hideOverlayToolStripMenuItem";
-            this.hideOverlayToolStripMenuItem.Size = new System.Drawing.Size(137, 22);
+            this.hideOverlayToolStripMenuItem.Size = new System.Drawing.Size(136, 22);
             this.hideOverlayToolStripMenuItem.Text = "Overlay";
             this.hideOverlayToolStripMenuItem.Click += new System.EventHandler(this.hideOverlayToolStripMenuItem_Click);
             // 
@@ -759,7 +763,7 @@ namespace Intersect.Editor.Forms
             this.hideTilePreviewToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.hideTilePreviewToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.hideTilePreviewToolStripMenuItem.Name = "hideTilePreviewToolStripMenuItem";
-            this.hideTilePreviewToolStripMenuItem.Size = new System.Drawing.Size(137, 22);
+            this.hideTilePreviewToolStripMenuItem.Size = new System.Drawing.Size(136, 22);
             this.hideTilePreviewToolStripMenuItem.Text = "Tile Preview";
             this.hideTilePreviewToolStripMenuItem.Click += new System.EventHandler(this.hideTilePreviewToolStripMenuItem_Click);
             // 
@@ -769,7 +773,7 @@ namespace Intersect.Editor.Forms
             this.hideResourcesToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
             this.hideResourcesToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.hideResourcesToolStripMenuItem.Name = "hideResourcesToolStripMenuItem";
-            this.hideResourcesToolStripMenuItem.Size = new System.Drawing.Size(137, 22);
+            this.hideResourcesToolStripMenuItem.Size = new System.Drawing.Size(136, 22);
             this.hideResourcesToolStripMenuItem.Text = "Resources";
             this.hideResourcesToolStripMenuItem.Click += new System.EventHandler(this.hideResourcesToolStripMenuItem_Click);
             // 
@@ -777,9 +781,27 @@ namespace Intersect.Editor.Forms
             // 
             this.mapGridToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.mapGridToolStripMenuItem.Name = "mapGridToolStripMenuItem";
-            this.mapGridToolStripMenuItem.Size = new System.Drawing.Size(137, 22);
+            this.mapGridToolStripMenuItem.Size = new System.Drawing.Size(136, 22);
             this.mapGridToolStripMenuItem.Text = "Map Grid";
             this.mapGridToolStripMenuItem.Click += new System.EventHandler(this.mapGridToolStripMenuItem_Click);
+            // 
+            // hideEventsToolStripMenuItem
+            // 
+            this.hideEventsToolStripMenuItem.Checked = true;
+            this.hideEventsToolStripMenuItem.CheckState = System.Windows.Forms.CheckState.Checked;
+            this.hideEventsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.hideEventsToolStripMenuItem.Name = "hideEventsToolStripMenuItem";
+            this.hideEventsToolStripMenuItem.Size = new System.Drawing.Size(136, 22);
+            this.hideEventsToolStripMenuItem.Text = "Events";
+            this.hideEventsToolStripMenuItem.Click += new System.EventHandler(this.hideEventsToolStripMenuItem_Click);
+            // 
+            // layersToolStripMenuItem
+            // 
+            this.layersToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.layersToolStripMenuItem.Name = "layersToolStripMenuItem";
+            this.layersToolStripMenuItem.Size = new System.Drawing.Size(136, 22);
+            this.layersToolStripMenuItem.Text = "Layers";
+            this.layersToolStripMenuItem.DropDownOpened += new System.EventHandler(this.layersToolStripMenuItem_DropDownOpened);
             // 
             // contentEditorsToolStripMenuItem
             // 
@@ -971,19 +993,19 @@ namespace Intersect.Editor.Forms
             // toolsToolStripMenuItem
             // 
             this.toolsToolStripMenuItem.DropDownItems.AddRange(new System.Windows.Forms.ToolStripItem[] {
-            this.packClientTexturesToolStripMenuItem});
+            this.packageUpdateToolStripMenuItem});
             this.toolsToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
             this.toolsToolStripMenuItem.Name = "toolsToolStripMenuItem";
-            this.toolsToolStripMenuItem.Size = new System.Drawing.Size(47, 20);
+            this.toolsToolStripMenuItem.Size = new System.Drawing.Size(46, 20);
             this.toolsToolStripMenuItem.Text = "Tools";
             // 
-            // packClientTexturesToolStripMenuItem
+            // packageUpdateToolStripMenuItem
             // 
-            this.packClientTexturesToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
-            this.packClientTexturesToolStripMenuItem.Name = "packClientTexturesToolStripMenuItem";
-            this.packClientTexturesToolStripMenuItem.Size = new System.Drawing.Size(179, 22);
-            this.packClientTexturesToolStripMenuItem.Text = "Pack Client Textures";
-            this.packClientTexturesToolStripMenuItem.Click += new System.EventHandler(this.packClientTexturesToolStripMenuItem_Click);
+            this.packageUpdateToolStripMenuItem.ForeColor = System.Drawing.Color.FromArgb(((int)(((byte)(220)))), ((int)(((byte)(220)))), ((int)(((byte)(220)))));
+            this.packageUpdateToolStripMenuItem.Name = "packageUpdateToolStripMenuItem";
+            this.packageUpdateToolStripMenuItem.Size = new System.Drawing.Size(159, 22);
+            this.packageUpdateToolStripMenuItem.Text = "Package Update";
+            this.packageUpdateToolStripMenuItem.Click += new System.EventHandler(this.packageUpdateToolStripMenuItem_Click);
             // 
             // FrmMain
             // 
@@ -994,7 +1016,6 @@ namespace Intersect.Editor.Forms
             this.Controls.Add(this.statusStrip1);
             this.Controls.Add(this.toolStrip1);
             this.Controls.Add(this.menuStrip);
-            this.Icon = ((System.Drawing.Icon)(resources.GetObject("$this.Icon")));
             this.IsMdiContainer = true;
             this.KeyPreview = true;
             this.MainMenuStrip = this.menuStrip;
@@ -1102,6 +1123,8 @@ namespace Intersect.Editor.Forms
 		private ToolStripButton toolStripBtnFlipVertical;
 		private ToolStripSeparator toolStripSeparator13;
 		private ToolStripMenuItem craftsEditorToolStripMenuItem;
-        private ToolStripMenuItem packClientTexturesToolStripMenuItem;
+        private ToolStripMenuItem packageUpdateToolStripMenuItem;
+        private ToolStripMenuItem layersToolStripMenuItem;
+        private ToolStripMenuItem hideEventsToolStripMenuItem;
     }
 }

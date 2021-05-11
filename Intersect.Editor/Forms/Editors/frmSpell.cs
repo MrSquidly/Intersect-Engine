@@ -29,16 +29,27 @@ namespace Intersect.Editor.Forms.Editors
 
         private SpellBase mEditorItem;
 
-        private List<string> mExpandedFolders = new List<string>();
-
         private List<string> mKnownFolders = new List<string>();
+
+        private List<string> mKnownCooldownGroups = new List<string>();
 
         public FrmSpell()
         {
             ApplyHooks();
             InitializeComponent();
-            lstSpells.LostFocus += itemList_FocusChanged;
-            lstSpells.GotFocus += itemList_FocusChanged;
+
+            cmbScalingStat.Items.Clear();
+            for (var i = 0; i < (int)Stats.StatCount; i++)
+            {
+                cmbScalingStat.Items.Add(Globals.GetStatName(i));
+            }
+
+            lstGameObjects.Init(UpdateToolStripItems, AssignEditorItem, toolStripItemNew_Click, toolStripItemCopy_Click, toolStripItemUndo_Click, toolStripItemPaste_Click, toolStripItemDelete_Click);
+        }
+        private void AssignEditorItem(Guid id)
+        {
+            mEditorItem = SpellBase.Get(id);
+            UpdateEditor();
         }
 
         protected override void GameObjectUpdatedDelegate(GameObjectType type)
@@ -164,6 +175,9 @@ namespace Intersect.Editor.Forms.Editors
             lblMPCost.Text = Strings.SpellEditor.manacost;
             lblCastDuration.Text = Strings.SpellEditor.casttime;
             lblCooldownDuration.Text = Strings.SpellEditor.cooldown;
+            lblCooldownGroup.Text = Strings.SpellEditor.CooldownGroup;
+            chkIgnoreGlobalCooldown.Text = Strings.SpellEditor.IgnoreGlobalCooldown;
+            chkIgnoreCdr.Text = Strings.SpellEditor.IgnoreCooldownReduction;
 
             grpTargetInfo.Text = Strings.SpellEditor.targetting;
             lblTargetType.Text = Strings.SpellEditor.targettype;
@@ -263,6 +277,9 @@ namespace Intersect.Editor.Forms.Editors
 
                 nudCastDuration.Value = mEditorItem.CastDuration;
                 nudCooldownDuration.Value = mEditorItem.CooldownDuration;
+                cmbCooldownGroup.SelectedItem = mEditorItem.CooldownGroup;
+                chkIgnoreGlobalCooldown.Checked = mEditorItem.IgnoreGlobalCooldown;
+                chkIgnoreCdr.Checked = mEditorItem.IgnoreCooldownReduction;
 
                 cmbCastAnimation.SelectedIndex = AnimationBase.ListIndex(mEditorItem.CastAnimationId) + 1;
                 cmbHitAnimation.SelectedIndex = AnimationBase.ListIndex(mEditorItem.HitAnimationId) + 1;
@@ -447,14 +464,8 @@ namespace Intersect.Editor.Forms.Editors
 
         private void txtName_TextChanged(object sender, EventArgs e)
         {
-            mChangingName = true;
             mEditorItem.Name = txtName.Text;
-            if (lstSpells.SelectedNode != null && lstSpells.SelectedNode.Tag != null)
-            {
-                lstSpells.SelectedNode.Text = txtName.Text;
-            }
-
-            mChangingName = false;
+            lstGameObjects.UpdateText(txtName.Text);
         }
 
         private void cmbType_SelectedIndexChanged(object sender, EventArgs e)
@@ -517,9 +528,9 @@ namespace Intersect.Editor.Forms.Editors
                     g.DrawImage(
                         src,
                         new Rectangle(
-                            picSprite.Width / 2 - src.Width / 8, picSprite.Height / 2 - src.Height / 8, src.Width / 4,
-                            src.Height / 4
-                        ), new Rectangle(0, 0, src.Width / 4, src.Height / 4), GraphicsUnit.Pixel
+                            picSprite.Width / 2 - src.Width / (Options.Instance.Sprites.NormalFrames * 2), picSprite.Height / 2 - src.Height / (Options.Instance.Sprites.Directions * 2), src.Width / Options.Instance.Sprites.NormalFrames,
+                            src.Height / Options.Instance.Sprites.Directions
+                        ), new Rectangle(0, 0, src.Width / Options.Instance.Sprites.NormalFrames, src.Height / Options.Instance.Sprites.Directions), GraphicsUnit.Pixel
                     );
 
                     g.Dispose();
@@ -575,9 +586,9 @@ namespace Intersect.Editor.Forms.Editors
                 g.DrawImage(
                     src,
                     new Rectangle(
-                        picSprite.Width / 2 - src.Width / 8, picSprite.Height / 2 - src.Height / 8, src.Width / 4,
-                        src.Height / 4
-                    ), new Rectangle(0, 0, src.Width / 4, src.Height / 4), GraphicsUnit.Pixel
+                        picSprite.Width / 2 - src.Width / (Options.Instance.Sprites.NormalFrames * 2), picSprite.Height / 2 - src.Height / (Options.Instance.Sprites.Directions * 2), src.Width / Options.Instance.Sprites.NormalFrames,
+                        src.Height / Options.Instance.Sprites.Directions
+                    ), new Rectangle(0, 0, src.Width / Options.Instance.Sprites.NormalFrames, src.Height / Options.Instance.Sprites.Directions), GraphicsUnit.Pixel
                 );
 
                 g.Dispose();
@@ -597,7 +608,7 @@ namespace Intersect.Editor.Forms.Editors
 
         private void toolStripItemDelete_Click(object sender, EventArgs e)
         {
-            if (mEditorItem != null && lstSpells.Focused)
+            if (mEditorItem != null && lstGameObjects.Focused)
             {
                 if (DarkMessageBox.ShowWarning(
                         Strings.SpellEditor.deleteprompt, Strings.SpellEditor.deletetitle, DarkDialogButton.YesNo,
@@ -612,7 +623,7 @@ namespace Intersect.Editor.Forms.Editors
 
         private void toolStripItemCopy_Click(object sender, EventArgs e)
         {
-            if (mEditorItem != null && lstSpells.Focused)
+            if (mEditorItem != null && lstGameObjects.Focused)
             {
                 mCopiedItem = mEditorItem.JsonData;
                 toolStripItemPaste.Enabled = true;
@@ -621,7 +632,7 @@ namespace Intersect.Editor.Forms.Editors
 
         private void toolStripItemPaste_Click(object sender, EventArgs e)
         {
-            if (mEditorItem != null && mCopiedItem != null && lstSpells.Focused)
+            if (mEditorItem != null && mCopiedItem != null && lstGameObjects.Focused)
             {
                 mEditorItem.Load(mCopiedItem, true);
                 UpdateEditor();
@@ -644,43 +655,12 @@ namespace Intersect.Editor.Forms.Editors
             }
         }
 
-        private void itemList_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Control)
-            {
-                if (e.KeyCode == Keys.Z)
-                {
-                    toolStripItemUndo_Click(null, null);
-                }
-                else if (e.KeyCode == Keys.V)
-                {
-                    toolStripItemPaste_Click(null, null);
-                }
-                else if (e.KeyCode == Keys.C)
-                {
-                    toolStripItemCopy_Click(null, null);
-                }
-            }
-            else
-            {
-                if (e.KeyCode == Keys.Delete)
-                {
-                    toolStripItemDelete_Click(null, null);
-                }
-            }
-        }
-
         private void UpdateToolStripItems()
         {
-            toolStripItemCopy.Enabled = mEditorItem != null && lstSpells.Focused;
-            toolStripItemPaste.Enabled = mEditorItem != null && mCopiedItem != null && lstSpells.Focused;
-            toolStripItemDelete.Enabled = mEditorItem != null && lstSpells.Focused;
-            toolStripItemUndo.Enabled = mEditorItem != null && lstSpells.Focused;
-        }
-
-        private void itemList_FocusChanged(object sender, EventArgs e)
-        {
-            UpdateToolStripItems();
+            toolStripItemCopy.Enabled = mEditorItem != null && lstGameObjects.Focused;
+            toolStripItemPaste.Enabled = mEditorItem != null && mCopiedItem != null && lstGameObjects.Focused;
+            toolStripItemDelete.Enabled = mEditorItem != null && lstGameObjects.Focused;
+            toolStripItemUndo.Enabled = mEditorItem != null && lstGameObjects.Focused;
         }
 
         private void form_KeyDown(object sender, KeyEventArgs e)
@@ -919,25 +899,45 @@ namespace Intersect.Editor.Forms.Editors
             mEditorItem.Bound = chkBound.Checked;
         }
 
+        private void btnAddCooldownGroup_Click(object sender, EventArgs e)
+        {
+            var cdGroupName = "";
+            var result = DarkInputBox.ShowInformation(
+                Strings.SpellEditor.CooldownGroupPrompt, Strings.SpellEditor.CooldownGroupTitle, ref cdGroupName,
+                DarkDialogButton.OkCancel
+            );
+
+            if (result == DialogResult.OK && !string.IsNullOrEmpty(cdGroupName))
+            {
+                if (!cmbCooldownGroup.Items.Contains(cdGroupName))
+                {
+                    mEditorItem.CooldownGroup = cdGroupName;
+                    mKnownCooldownGroups.Add(cdGroupName);
+                    InitEditor();
+                    cmbCooldownGroup.Text = cdGroupName;
+                }
+            }
+        }
+
+        private void cmbCooldownGroup_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            mEditorItem.CooldownGroup = cmbCooldownGroup.Text;
+        }
+
+        private void chkIgnoreGlobalCooldown_CheckedChanged(object sender, EventArgs e)
+        {
+            mEditorItem.IgnoreGlobalCooldown = chkIgnoreGlobalCooldown.Checked;
+        }
+
+        private void chkIgnoreCdr_CheckedChanged(object sender, EventArgs e)
+        {
+            mEditorItem.IgnoreCooldownReduction = chkIgnoreCdr.Checked;
+        }
+
         #region "Item List - Folders, Searching, Sorting, Etc"
 
         public void InitEditor()
         {
-            var selectedId = Guid.Empty;
-            var folderNodes = new Dictionary<string, TreeNode>();
-            if (lstSpells.SelectedNode != null && lstSpells.SelectedNode.Tag != null)
-            {
-                selectedId = (Guid) lstSpells.SelectedNode.Tag;
-            }
-
-            lstSpells.Nodes.Clear();
-
-            cmbScalingStat.Items.Clear();
-            for (var i = 0; i < Options.MaxStats; i++)
-            {
-                cmbScalingStat.Items.Add(Globals.GetStatName(i));
-            }
-
             //Collect folders
             var mFolders = new List<string>();
             foreach (var itm in SpellBase.Lookup)
@@ -951,6 +951,25 @@ namespace Intersect.Editor.Forms.Editors
                         mKnownFolders.Add(((SpellBase) itm.Value).Folder);
                     }
                 }
+
+                if (!string.IsNullOrWhiteSpace(((SpellBase)itm.Value).CooldownGroup) &&
+                    !mKnownCooldownGroups.Contains(((SpellBase)itm.Value).CooldownGroup))
+                {
+                    mKnownCooldownGroups.Add(((SpellBase)itm.Value).CooldownGroup);
+                }
+            }
+
+            // Do we add item cooldown groups as well?
+            if (Options.Combat.LinkSpellAndItemCooldowns)
+            {
+                foreach (var itm in ItemBase.Lookup)
+                {
+                    if (!string.IsNullOrWhiteSpace(((ItemBase)itm.Value).CooldownGroup) &&
+                    !mKnownCooldownGroups.Contains(((ItemBase)itm.Value).CooldownGroup))
+                    {
+                        mKnownCooldownGroups.Add(((ItemBase)itm.Value).CooldownGroup);
+                    }
+                }
             }
 
             mFolders.Sort();
@@ -959,70 +978,14 @@ namespace Intersect.Editor.Forms.Editors
             cmbFolder.Items.Add("");
             cmbFolder.Items.AddRange(mKnownFolders.ToArray());
 
-            lstSpells.Sorted = !btnChronological.Checked;
+            mKnownCooldownGroups.Sort();
+            cmbCooldownGroup.Items.Clear();
+            cmbCooldownGroup.Items.Add(string.Empty);
+            cmbCooldownGroup.Items.AddRange(mKnownCooldownGroups.ToArray());
 
-            if (!btnChronological.Checked && !CustomSearch())
-            {
-                foreach (var folder in mFolders)
-                {
-                    var node = lstSpells.Nodes.Add(folder);
-                    node.ImageIndex = 0;
-                    node.SelectedImageIndex = 0;
-                    folderNodes.Add(folder, node);
-                }
-            }
-
-            foreach (var itm in SpellBase.ItemPairs)
-            {
-                var node = new TreeNode(itm.Value);
-                node.Tag = itm.Key;
-                node.ImageIndex = 1;
-                node.SelectedImageIndex = 1;
-
-                var folder = SpellBase.Get(itm.Key).Folder;
-                if (!string.IsNullOrEmpty(folder) && !btnChronological.Checked && !CustomSearch())
-                {
-                    var folderNode = folderNodes[folder];
-                    folderNode.Nodes.Add(node);
-                    if (itm.Key == selectedId)
-                    {
-                        folderNode.Expand();
-                    }
-                }
-                else
-                {
-                    lstSpells.Nodes.Add(node);
-                }
-
-                if (CustomSearch())
-                {
-                    if (!node.Text.ToLower().Contains(txtSearch.Text.ToLower()))
-                    {
-                        node.Remove();
-                    }
-                }
-
-                if (itm.Key == selectedId)
-                {
-                    lstSpells.SelectedNode = node;
-                }
-            }
-
-            var selectedNode = lstSpells.SelectedNode;
-
-            if (!btnChronological.Checked)
-            {
-                lstSpells.Sort();
-            }
-
-            lstSpells.SelectedNode = selectedNode;
-            foreach (var node in mExpandedFolders)
-            {
-                if (folderNodes.ContainsKey(node))
-                {
-                    folderNodes[node].Expand();
-                }
-            }
+            var items = SpellBase.Lookup.OrderBy(p => p.Value?.TimeCreated).Select(pair => new KeyValuePair<Guid, KeyValuePair<string, string>>(pair.Key,
+                new KeyValuePair<string, string>(((SpellBase)pair.Value)?.Name ?? Models.DatabaseObject<SpellBase>.Deleted, ((SpellBase)pair.Value)?.Folder ?? ""))).ToArray();
+            lstGameObjects.Repopulate(items, mFolders, btnChronological.Checked, CustomSearch(), txtSearch.Text);
         }
 
         private void btnAddFolder_Click(object sender, EventArgs e)
@@ -1038,73 +1001,11 @@ namespace Intersect.Editor.Forms.Editors
                 if (!cmbFolder.Items.Contains(folderName))
                 {
                     mEditorItem.Folder = folderName;
-                    mExpandedFolders.Add(folderName);
+                    lstGameObjects.ExpandFolder(folderName);
                     InitEditor();
                     cmbFolder.Text = folderName;
                 }
             }
-        }
-
-        private void lstSpells_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
-        {
-            var node = e.Node;
-            if (node != null)
-            {
-                if (e.Button == MouseButtons.Right)
-                {
-                    if (e.Node.Tag != null && e.Node.Tag.GetType() == typeof(Guid))
-                    {
-                        Clipboard.SetText(e.Node.Tag.ToString());
-                    }
-                }
-
-                var hitTest = lstSpells.HitTest(e.Location);
-                if (hitTest.Location != TreeViewHitTestLocations.PlusMinus)
-                {
-                    if (node.Nodes.Count > 0)
-                    {
-                        if (node.IsExpanded)
-                        {
-                            node.Collapse();
-                        }
-                        else
-                        {
-                            node.Expand();
-                        }
-                    }
-                }
-
-                if (node.IsExpanded)
-                {
-                    if (!mExpandedFolders.Contains(node.Text))
-                    {
-                        mExpandedFolders.Add(node.Text);
-                    }
-                }
-                else
-                {
-                    if (mExpandedFolders.Contains(node.Text))
-                    {
-                        mExpandedFolders.Remove(node.Text);
-                    }
-                }
-            }
-        }
-
-        private void lstSpells_AfterSelect(object sender, TreeViewEventArgs e)
-        {
-            if (mChangingName)
-            {
-                return;
-            }
-
-            if (lstSpells.SelectedNode == null || lstSpells.SelectedNode.Tag == null)
-            {
-                return;
-            }
-
-            mEditorItem = SpellBase.Get((Guid) lstSpells.SelectedNode.Tag);
-            UpdateEditor();
         }
 
         private void cmbFolder_SelectedIndexChanged(object sender, EventArgs e)
@@ -1158,7 +1059,6 @@ namespace Intersect.Editor.Forms.Editors
         }
 
         #endregion
-
     }
 
 }

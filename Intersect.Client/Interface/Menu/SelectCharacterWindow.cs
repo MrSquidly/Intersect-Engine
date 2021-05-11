@@ -124,6 +124,30 @@ namespace Intersect.Client.Interface.Menu
                 mMainMenu.Show();
                 Interface.MsgboxErrors.Add(new KeyValuePair<string, string>("", Strings.Errors.lostconnection));
             }
+
+            // Re-Enable our buttons if we're not waiting for the server anymore with it disabled.
+            if (!Globals.WaitingOnServer)
+            {
+                if (mPlayButton.IsDisabled)
+                {
+                    mPlayButton.Enable();
+                }
+
+                if (mNewButton.IsDisabled)
+                {
+                    mNewButton.Enable();
+                }
+
+                if (mDeleteButton.IsDisabled)
+                {
+                    mDeleteButton.Enable();
+                }
+
+                if (mLogoutButton.IsDisabled)
+                {
+                    mLogoutButton.Enable();
+                }
+            }
         }
 
         private void UpdateDisplay()
@@ -228,11 +252,11 @@ namespace Intersect.Client.Interface.Menu
                     else
                     {
                         mCharacterPortrait.SetTextureRect(
-                            0, 0, mCharacterPortrait.Texture.GetWidth() / 4, mCharacterPortrait.Texture.GetHeight() / 4
+                            0, 0, mCharacterPortrait.Texture.GetWidth() / Options.Instance.Sprites.NormalFrames, mCharacterPortrait.Texture.GetHeight() / Options.Instance.Sprites.Directions
                         );
 
                         mCharacterPortrait.SetSize(
-                            mCharacterPortrait.Texture.GetWidth() / 4, mCharacterPortrait.Texture.GetHeight() / 4
+                            mCharacterPortrait.Texture.GetWidth() / Options.Instance.Sprites.NormalFrames, mCharacterPortrait.Texture.GetHeight() / Options.Instance.Sprites.Directions
                         );
 
                         mCharacterPortrait.SetPosition(
@@ -253,14 +277,14 @@ namespace Intersect.Client.Interface.Menu
                                     mPaperdollPortraits[i].Show();
                                     mPaperdollPortraits[i]
                                         .SetTextureRect(
-                                            0, 0, mPaperdollPortraits[i].Texture.GetWidth() / 4,
-                                            mPaperdollPortraits[i].Texture.GetHeight() / 4
+                                            0, 0, mPaperdollPortraits[i].Texture.GetWidth() / Options.Instance.Sprites.NormalFrames,
+                                            mPaperdollPortraits[i].Texture.GetHeight() / Options.Instance.Sprites.Directions
                                         );
 
                                     mPaperdollPortraits[i]
                                         .SetSize(
-                                            mPaperdollPortraits[i].Texture.GetWidth() / 4,
-                                            mPaperdollPortraits[i].Texture.GetHeight() / 4
+                                            mPaperdollPortraits[i].Texture.GetWidth() / Options.Instance.Sprites.NormalFrames,
+                                            mPaperdollPortraits[i].Texture.GetHeight() / Options.Instance.Sprites.Directions
                                         );
 
                                     mPaperdollPortraits[i]
@@ -335,16 +359,32 @@ namespace Intersect.Client.Interface.Menu
 
         private void _playButton_Clicked(Base sender, ClickedEventArgs arguments)
         {
+            if (Globals.WaitingOnServer)
+            {
+                return;
+            }
+
             ChatboxMsg.ClearMessages();
             PacketSender.SendSelectCharacter(Characters[mSelectedChar].Id);
+
+            Globals.WaitingOnServer = true;
+            mPlayButton.Disable();
+            mNewButton.Disable();
+            mDeleteButton.Disable();
+            mLogoutButton.Disable();
         }
 
         private void _deleteButton_Clicked(Base sender, ClickedEventArgs arguments)
         {
+            if (Globals.WaitingOnServer)
+            {
+                return;
+            }
+
             var iBox = new InputBox(
                 Strings.CharacterSelection.deletetitle.ToString(Characters[mSelectedChar].Name),
                 Strings.CharacterSelection.deleteprompt.ToString(Characters[mSelectedChar].Name), true,
-                InputBox.InputType.YesNo, DeleteCharacter, null, Characters[mSelectedChar].Id,
+                InputBox.InputType.YesNo, DeleteCharacter, null, Characters[mSelectedChar].Id, 0,
                 mCharacterSelectionPanel.Parent, GameContentManager.UI.Menu
             );
         }
@@ -352,13 +392,31 @@ namespace Intersect.Client.Interface.Menu
         private void DeleteCharacter(Object sender, EventArgs e)
         {
             PacketSender.SendDeleteCharacter((Guid) ((InputBox) sender).UserData);
+
+            Globals.WaitingOnServer = true;
+            mPlayButton.Disable();
+            mNewButton.Disable();
+            mDeleteButton.Disable();
+            mLogoutButton.Disable();
+
             mSelectedChar = 0;
             UpdateDisplay();
         }
 
         private void _newButton_Clicked(Base sender, ClickedEventArgs arguments)
         {
+            if (Globals.WaitingOnServer)
+            {
+                return;
+            }
+
             PacketSender.SendNewCharacter();
+
+            Globals.WaitingOnServer = true;
+            mPlayButton.Disable();
+            mNewButton.Disable();
+            mDeleteButton.Disable();
+            mLogoutButton.Disable();
         }
 
     }

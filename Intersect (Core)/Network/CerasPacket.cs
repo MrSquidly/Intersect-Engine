@@ -3,19 +3,14 @@ using System.Collections.Generic;
 
 using Intersect.Collections;
 
-using JetBrains.Annotations;
-
 namespace Intersect.Network
 {
 
     public abstract class CerasPacket : IPacket
     {
+        private static Ceras sCerasInstance { get; set; }
 
-        [NotNull] private static readonly Ceras sCerasInstance = new Ceras(true);
-
-        protected CerasPacket()
-        {
-        }
+        private static Ceras Ceras => (sCerasInstance = (sCerasInstance ?? new Ceras(true)));
 
         /// <inheritdoc />
         public virtual void Dispose()
@@ -23,7 +18,7 @@ namespace Intersect.Network
         }
 
         /// <inheritdoc />
-        [NotNull] public virtual byte[] Data => sCerasInstance.Serialize(this) ?? throw new Exception("Failed to serialize packet.");
+        public virtual byte[] Data => Ceras.Serialize(this) ?? throw new Exception("Failed to serialize packet.");
 
         public virtual bool IsValid => true;
 

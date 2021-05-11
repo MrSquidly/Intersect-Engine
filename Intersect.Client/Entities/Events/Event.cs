@@ -14,7 +14,7 @@ using Intersect.Network.Packets.Server;
 namespace Intersect.Client.Entities.Events
 {
 
-    public class Event : Entity
+    public partial class Event : Entity
     {
 
         public string Desc = "";
@@ -88,6 +88,7 @@ namespace Intersect.Client.Entities.Events
             {
                 return;
             }
+            
 
             var map = MapInstance.Get(CurrentMap);
             var srcRectangle = new FloatRect();
@@ -106,8 +107,8 @@ namespace Intersect.Client.Entities.Events
                     if (entityTex != null)
                     {
                         srcTexture = entityTex;
-                        height = srcTexture.GetHeight() / 4;
-                        width = srcTexture.GetWidth() / 4;
+                        height = srcTexture.GetHeight() / Options.Instance.Sprites.Directions;
+                        width = srcTexture.GetWidth() / Options.Instance.Sprites.NormalFrames;
                         d = Graphic.Y;
                         if (!DirectionFix)
                         {
@@ -141,15 +142,15 @@ namespace Intersect.Client.Entities.Events
                         if (Options.AnimatedSprites.Contains(Graphic.Filename.ToLower()))
                         {
                             srcRectangle = new FloatRect(
-                                AnimationFrame * (int) entityTex.GetWidth() / 4, d * (int) entityTex.GetHeight() / 4,
-                                (int) entityTex.GetWidth() / 4, (int) entityTex.GetHeight() / 4
+                                AnimationFrame * (int) entityTex.GetWidth() / Options.Instance.Sprites.NormalFrames, d * (int) entityTex.GetHeight() / Options.Instance.Sprites.Directions,
+                                (int) entityTex.GetWidth() / Options.Instance.Sprites.NormalFrames, (int) entityTex.GetHeight() / Options.Instance.Sprites.Directions
                             );
                         }
                         else
                         {
                             srcRectangle = new FloatRect(
-                                frame * (int) srcTexture.GetWidth() / 4, d * (int) srcTexture.GetHeight() / 4,
-                                (int) srcTexture.GetWidth() / 4, (int) srcTexture.GetHeight() / 4
+                                frame * (int) srcTexture.GetWidth() / Options.Instance.Sprites.NormalFrames, d * (int) srcTexture.GetHeight() / Options.Instance.Sprites.Directions,
+                                (int) srcTexture.GetWidth() / Options.Instance.Sprites.NormalFrames, (int) srcTexture.GetHeight() / Options.Instance.Sprites.Directions
                             );
                         }
                     }
@@ -198,7 +199,13 @@ namespace Intersect.Client.Entities.Events
             destRectangle.Y = (int) Math.Ceiling(destRectangle.Y);
             destRectangle.Width = srcRectangle.Width;
             destRectangle.Height = srcRectangle.Height;
+
+            // Set up our targetting rectangle.
+            // If we're smaller than a tile, force the target size to a tile.
             WorldPos = destRectangle;
+            WorldPos.Width = Math.Max(Options.TileWidth, srcRectangle.Width);
+            WorldPos.Height = Math.Max(Options.TileHeight, srcRectangle.Height);
+
             if (srcTexture != null)
             {
                 Graphics.DrawGameTexture(srcTexture, srcRectangle, destRectangle, Intersect.Color.White);
@@ -381,7 +388,7 @@ namespace Intersect.Client.Entities.Events
                     if (entityTex != null)
                     {
                         pos.Y += Options.TileHeight / 2;
-                        pos.Y -= entityTex.GetHeight() / 4 / 2;
+                        pos.Y -= entityTex.GetHeight() / Options.Instance.Sprites.Directions / 2;
                     }
 
                     break;

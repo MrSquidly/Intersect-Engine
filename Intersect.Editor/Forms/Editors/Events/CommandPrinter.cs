@@ -9,6 +9,7 @@ using Intersect.GameObjects;
 using Intersect.GameObjects.Events;
 using Intersect.GameObjects.Events.Commands;
 using Intersect.GameObjects.Maps.MapList;
+using Intersect.Logging;
 
 namespace Intersect.Editor.Forms.Editors.Events
 {
@@ -182,28 +183,45 @@ namespace Intersect.Editor.Forms.Editors.Events
 
                             mCommandProperties.Add(clp);
 
-                            PrintCommandList(
-                                page, page.CommandLists[cnd.BranchIds[0]], indent + "          ", lstEventCommands,
-                                mCommandProperties, map
-                            );
-
-                            lstEventCommands.Items.Add(indent + "      : " + Strings.EventCommandList.conditionalelse);
-                            clp = new CommandListProperties
+                            if ((cnd.BranchIds?.Length ?? 0) < 2)
                             {
-                                Editable = false,
-                                MyIndex = i,
-                                MyList = commandList,
-                                Type = commandList[i].Type,
-                                Cmd = commandList[i]
-                            };
+                                Log.Error("Missing branch ids in conditional branch.");
+                            }
 
-                            mCommandProperties.Add(clp);
+                            if (!page.CommandLists.TryGetValue(cnd.BranchIds[0], out var branchCommandList))
+                            {
+                                Log.Error($"Missing command list for branch {cnd.BranchIds[0]}");
+                            }
 
                             PrintCommandList(
-                                page, page.CommandLists[cnd.BranchIds[1]], indent + "          ", lstEventCommands,
+                                page, branchCommandList, indent + "          ", lstEventCommands,
                                 mCommandProperties, map
                             );
 
+                            if (cnd.Condition.ElseEnabled)
+                            {
+                                lstEventCommands.Items.Add(indent + "      : " + Strings.EventCommandList.conditionalelse);
+                                clp = new CommandListProperties {
+                                    Editable = false,
+                                    MyIndex = i,
+                                    MyList = commandList,
+                                    Type = commandList[i].Type,
+                                    Cmd = commandList[i]
+                                };
+
+                                mCommandProperties.Add(clp);
+
+                                if (!page.CommandLists.TryGetValue(cnd.BranchIds[1], out branchCommandList))
+                                {
+                                    Log.Error($"Missing command list for branch {cnd.BranchIds[1]}");
+                                }
+
+                                PrintCommandList(
+                                    page, branchCommandList, indent + "          ", lstEventCommands,
+                                    mCommandProperties, map
+                                );
+                            }
+                            
                             lstEventCommands.Items.Add(indent + "      : " + Strings.EventCommandList.conditionalend);
                             clp = new CommandListProperties
                             {
@@ -416,6 +434,68 @@ namespace Intersect.Editor.Forms.Editors.Events
                             mCommandProperties.Add(clp);
 
                             break;
+                        case EventCommandType.ChangeName:
+                            var chna = (ChangeNameCommand)commandList[i];
+                            lstEventCommands.Items.Add(
+                                indent +
+                                Strings.EventCommandList.linestart +
+                                GetCommandText((dynamic)commandList[i], map)
+                            );
+
+                            clp = new CommandListProperties {
+                                Editable = true,
+                                MyIndex = i,
+                                MyList = commandList,
+                                Cmd = commandList[i],
+                                Type = commandList[i].Type
+                            };
+
+                            mCommandProperties.Add(clp);
+
+                            //When the name was successfully changed:
+                            lstEventCommands.Items.Add(indent + "      : " + Strings.EventCommandList.namesucceeded);
+                            clp = new CommandListProperties {
+                                Editable = false,
+                                MyIndex = i,
+                                MyList = commandList,
+                                Type = commandList[i].Type,
+                                Cmd = commandList[i]
+                            };
+
+                            mCommandProperties.Add(clp);
+                            PrintCommandList(
+                                page, page.CommandLists[chna.BranchIds[0]], indent + "          ", lstEventCommands,
+                                mCommandProperties, map
+                            );
+
+                            //When the name failed to change:
+                            lstEventCommands.Items.Add(indent + "      : " + Strings.EventCommandList.namefailed);
+                            clp = new CommandListProperties {
+                                Editable = false,
+                                MyIndex = i,
+                                MyList = commandList,
+                                Type = commandList[i].Type,
+                                Cmd = commandList[i]
+                            };
+
+                            mCommandProperties.Add(clp);
+                            PrintCommandList(
+                                page, page.CommandLists[chna.BranchIds[1]], indent + "          ", lstEventCommands,
+                                mCommandProperties, map
+                            );
+
+                            lstEventCommands.Items.Add(indent + "      : " + Strings.EventCommandList.endname);
+                            clp = new CommandListProperties {
+                                Editable = false,
+                                MyIndex = i,
+                                MyList = commandList,
+                                Type = commandList[i].Type,
+                                Cmd = commandList[i]
+                            };
+
+                            mCommandProperties.Add(clp);
+
+                            break;
                         default:
                             lstEventCommands.Items.Add(
                                 indent +
@@ -426,6 +506,140 @@ namespace Intersect.Editor.Forms.Editors.Events
                             clp = new CommandListProperties
                             {
                                 Editable = true,
+                                MyIndex = i,
+                                MyList = commandList,
+                                Type = commandList[i].Type,
+                                Cmd = commandList[i]
+                            };
+
+                            mCommandProperties.Add(clp);
+
+                            break;
+
+                        case EventCommandType.CreateGuild:
+                            var gld = (CreateGuildCommand)commandList[i];
+                            lstEventCommands.Items.Add(
+                                indent +
+                                Strings.EventCommandList.linestart +
+                                GetCommandText((dynamic)commandList[i], map)
+                            );
+
+                            clp = new CommandListProperties
+                            {
+                                Editable = true,
+                                MyIndex = i,
+                                MyList = commandList,
+                                Cmd = commandList[i],
+                                Type = commandList[i].Type
+                            };
+
+                            mCommandProperties.Add(clp);
+
+                            //When the guild is created successfully:
+                            lstEventCommands.Items.Add(indent + "      : " + Strings.EventCommandList.guildcreated);
+                            clp = new CommandListProperties
+                            {
+                                Editable = false,
+                                MyIndex = i,
+                                MyList = commandList,
+                                Type = commandList[i].Type,
+                                Cmd = commandList[i]
+                            };
+
+                            mCommandProperties.Add(clp);
+                            PrintCommandList(
+                                page, page.CommandLists[gld.BranchIds[0]], indent + "          ", lstEventCommands,
+                                mCommandProperties, map
+                            );
+
+                            //When the guild was not created for any reason:
+                            lstEventCommands.Items.Add(indent + "      : " + Strings.EventCommandList.guildfailed);
+                            clp = new CommandListProperties
+                            {
+                                Editable = false,
+                                MyIndex = i,
+                                MyList = commandList,
+                                Type = commandList[i].Type,
+                                Cmd = commandList[i]
+                            };
+
+                            mCommandProperties.Add(clp);
+                            PrintCommandList(
+                                page, page.CommandLists[gld.BranchIds[1]], indent + "          ", lstEventCommands,
+                                mCommandProperties, map
+                            );
+
+                            lstEventCommands.Items.Add(indent + "      : " + Strings.EventCommandList.endcreateguild);
+                            clp = new CommandListProperties
+                            {
+                                Editable = false,
+                                MyIndex = i,
+                                MyList = commandList,
+                                Type = commandList[i].Type,
+                                Cmd = commandList[i]
+                            };
+
+                            mCommandProperties.Add(clp);
+
+                            break;
+
+                        case EventCommandType.DisbandGuild:
+                            var gldd = (DisbandGuildCommand)commandList[i];
+                            lstEventCommands.Items.Add(
+                                indent +
+                                Strings.EventCommandList.linestart +
+                                GetCommandText((dynamic)commandList[i], map)
+                            );
+
+                            clp = new CommandListProperties
+                            {
+                                Editable = true,
+                                MyIndex = i,
+                                MyList = commandList,
+                                Cmd = commandList[i],
+                                Type = commandList[i].Type
+                            };
+
+                            mCommandProperties.Add(clp);
+
+                            //When the guild is disbanded successfully:
+                            lstEventCommands.Items.Add(indent + "      : " + Strings.EventCommandList.guildisbanded);
+                            clp = new CommandListProperties
+                            {
+                                Editable = false,
+                                MyIndex = i,
+                                MyList = commandList,
+                                Type = commandList[i].Type,
+                                Cmd = commandList[i]
+                            };
+
+                            mCommandProperties.Add(clp);
+                            PrintCommandList(
+                                page, page.CommandLists[gldd.BranchIds[0]], indent + "          ", lstEventCommands,
+                                mCommandProperties, map
+                            );
+
+                            //When the guild was not disbanded for any reason:
+                            lstEventCommands.Items.Add(indent + "      : " + Strings.EventCommandList.guilddisbandfailed);
+                            clp = new CommandListProperties
+                            {
+                                Editable = false,
+                                MyIndex = i,
+                                MyList = commandList,
+                                Type = commandList[i].Type,
+                                Cmd = commandList[i]
+                            };
+
+                            mCommandProperties.Add(clp);
+                            PrintCommandList(
+                                page, page.CommandLists[gldd.BranchIds[1]], indent + "          ", lstEventCommands,
+                                mCommandProperties, map
+                            );
+
+                            lstEventCommands.Items.Add(indent + "      : " + Strings.EventCommandList.enddisbandguild);
+                            clp = new CommandListProperties
+                            {
+                                Editable = false,
                                 MyIndex = i,
                                 MyList = commandList,
                                 Type = commandList[i].Type,
@@ -584,7 +798,25 @@ namespace Intersect.Editor.Forms.Editors.Events
 
         private static string GetCommandText(GiveExperienceCommand command, MapInstance map)
         {
-            return Strings.EventCommandList.giveexp.ToString(command.Exp);
+            if (command.UseVariable)
+            {
+                var exp = string.Empty;
+                switch (command.VariableType)
+                {
+                    case VariableTypes.PlayerVariable:
+                        exp = string.Format(@"({0}: {1})", Strings.EventGiveExperience.PlayerVariable, PlayerVariableBase.GetName(command.VariableId));
+                        break;
+                    case VariableTypes.ServerVariable:
+                        exp = string.Format(@"({0}: {1})", Strings.EventGiveExperience.ServerVariable, ServerVariableBase.GetName(command.VariableId));
+                        break;
+                }
+
+                return Strings.EventCommandList.giveexp.ToString(exp);
+            }
+            else
+            {
+                return Strings.EventCommandList.giveexp.ToString(command.Exp);
+            }
         }
 
         private static string GetCommandText(ChangeLevelCommand command, MapInstance map)
@@ -622,7 +854,7 @@ namespace Intersect.Editor.Forms.Editors.Events
 
         private static string GetCommandText(EquipItemCommand command, MapInstance map)
         {
-            return Strings.EventCommandList.equipitem.ToString(ItemBase.GetName(command.ItemId));
+            return command.Unequip ? Strings.EventCommandList.unequipitem.ToString(ItemBase.GetName(command.ItemId)) : Strings.EventCommandList.equipitem.ToString(ItemBase.GetName(command.ItemId));
         }
 
         private static string GetCommandText(ChangeSpriteCommand command, MapInstance map)
@@ -927,6 +1159,11 @@ namespace Intersect.Editor.Forms.Editors.Events
             return Strings.EventCommandList.showpicture;
         }
 
+        private static string GetCommandText(ChangeNameCommand command, MapInstance map)
+        {
+            return Strings.EventCommandList.changename.ToString(PlayerVariableBase.GetName(command.VariableId));
+        }
+
         private static string GetCommandText(HidePictureCommmand command, MapInstance map)
         {
             return Strings.EventCommandList.hidepicture;
@@ -1009,6 +1246,32 @@ namespace Intersect.Editor.Forms.Editors.Events
             );
         }
 
+        private static string GetCommandText(ChangePlayerColorCommand command, MapInstance map)
+        {
+            return Strings.EventCommandList.ChangePlayerColor.ToString(command.Color.R, command.Color.G, command.Color.B, command.Color.A);
+        }
+
+        private static string GetCommandText(CreateGuildCommand command, MapInstance map)
+        {
+            return Strings.EventCommandList.createguild.ToString(PlayerVariableBase.GetName(command.VariableId));
+        }
+
+        private static string GetCommandText(DisbandGuildCommand command, MapInstance map)
+        {
+            return Strings.EventCommandList.disbandguild;
+        }
+
+        private static string GetCommandText(OpenGuildBankCommand command, MapInstance map)
+        {
+            return Strings.EventCommandList.openguildbank;
+        }
+
+        private static string GetCommandText(SetGuildBankSlotsCommand command, MapInstance map)
+        {
+            return Strings.EventCommandList.setguildbankslots;
+        }
+
+
         //Set Variable Modification Texts
         private static string GetVariableModText(SetVariableCommand command, VariableMod mod)
         {
@@ -1080,6 +1343,22 @@ namespace Intersect.Editor.Forms.Editors.Events
                     varvalue = Strings.EventCommandList.subtractvariable.ToString(mod.Value);
 
                     break;
+                case Enums.VariableMods.Multiply:
+                    varvalue = Strings.EventCommandList.multiplyvariable.ToString(mod.Value);
+
+                    break;
+                case Enums.VariableMods.Divide:
+                    varvalue = Strings.EventCommandList.dividevariable.ToString(mod.Value);
+
+                    break;
+                case Enums.VariableMods.LeftShift:
+                    varvalue = Strings.EventCommandList.leftshiftvariable.ToString(mod.Value);
+
+                    break;
+                case Enums.VariableMods.RightShift:
+                    varvalue = Strings.EventCommandList.rightshiftvariable.ToString(mod.Value);
+
+                    break;
                 case Enums.VariableMods.Random:
                     varvalue = Strings.EventCommandList.randvariable.ToString(mod.Value, mod.HighValue);
 
@@ -1120,6 +1399,54 @@ namespace Intersect.Editor.Forms.Editors.Events
                     break;
                 case Enums.VariableMods.SubtractGlobalVar:
                     varvalue = Strings.EventCommandList.subtractglobalvariable.ToString(
+                        ServerVariableBase.GetName(mod.DuplicateVariableId)
+                    );
+
+                    break;
+                case Enums.VariableMods.MultiplyPlayerVar:
+                    varvalue = Strings.EventCommandList.multiplyplayervariable.ToString(
+                        PlayerVariableBase.GetName(mod.DuplicateVariableId)
+                    );
+
+                    break;
+                case Enums.VariableMods.MultiplyGlobalVar:
+                    varvalue = Strings.EventCommandList.multiplyglobalvariable.ToString(
+                        ServerVariableBase.GetName(mod.DuplicateVariableId)
+                    );
+
+                    break;
+                case Enums.VariableMods.DividePlayerVar:
+                    varvalue = Strings.EventCommandList.divideplayervariable.ToString(
+                        PlayerVariableBase.GetName(mod.DuplicateVariableId)
+                    );
+
+                    break;
+                case Enums.VariableMods.DivideGlobalVar:
+                    varvalue = Strings.EventCommandList.divideglobalvariable.ToString(
+                        ServerVariableBase.GetName(mod.DuplicateVariableId)
+                    );
+
+                    break;
+                case Enums.VariableMods.LeftShiftPlayerVar:
+                    varvalue = Strings.EventCommandList.leftshiftplayervariable.ToString(
+                        PlayerVariableBase.GetName(mod.DuplicateVariableId)
+                    );
+
+                    break;
+                case Enums.VariableMods.LeftShiftGlobalVar:
+                    varvalue = Strings.EventCommandList.leftshiftglobalvariable.ToString(
+                        ServerVariableBase.GetName(mod.DuplicateVariableId)
+                    );
+
+                    break;
+                case Enums.VariableMods.RightShiftPlayerVar:
+                    varvalue = Strings.EventCommandList.rightshiftplayervariable.ToString(
+                        PlayerVariableBase.GetName(mod.DuplicateVariableId)
+                    );
+
+                    break;
+                case Enums.VariableMods.RightShiftGlobalVar:
+                    varvalue = Strings.EventCommandList.rightshiftglobalvariable.ToString(
                         ServerVariableBase.GetName(mod.DuplicateVariableId)
                     );
 

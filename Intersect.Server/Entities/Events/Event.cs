@@ -13,7 +13,7 @@ using Intersect.Server.Networking;
 namespace Intersect.Server.Entities.Events
 {
 
-    public class Event
+    public partial class Event
     {
 
         public EventBase BaseEvent;
@@ -29,6 +29,8 @@ namespace Intersect.Server.Entities.Events
         public Guid Id;
 
         public Guid MapId;
+
+        public MapInstance MapInstance;
 
         private Dictionary<string, string> mParams = new Dictionary<string, string>();
 
@@ -51,23 +53,24 @@ namespace Intersect.Server.Entities.Events
 
         public int Y;
 
-        public Event(Guid instanceId, Guid map, Player player, EventBase baseEvent)
+        public Event(Guid instanceId, MapInstance map, Player player, EventBase baseEvent)
         {
             Id = instanceId;
-            MapId = map;
+            MapId = map?.Id ?? Guid.Empty;
+            MapInstance = map;
             Player = player;
             SelfSwitch = new bool[4];
             BaseEvent = baseEvent;
-            MapId = map;
             X = baseEvent.SpawnX;
             Y = baseEvent.SpawnY;
         }
 
-        public Event(Guid instanceId, EventBase baseEvent, Guid map) //Global constructor
+        public Event(Guid instanceId, EventBase baseEvent, MapInstance map) //Global constructor
         {
             Id = instanceId;
             Global = true;
-            MapId = map;
+            MapId = map?.Id ?? Guid.Empty;
+            MapInstance = map;
             BaseEvent = baseEvent;
             SelfSwitch = new bool[4];
             GlobalPageInstance = new EventPageInstance[BaseEvent.Pages.Count];
@@ -81,17 +84,21 @@ namespace Intersect.Server.Entities.Events
 
         public bool[] SelfSwitch { get; set; }
 
-        public void Update(long timeMs)
+        public void Update(long timeMs, MapInstance map)
         {
             var sendLeave = false;
             var originalPageInstance = PageInstance;
             if (PageInstance != null)
             {
                 //Check for despawn
-                if (PageInstance.ShouldDespawn())
+                if (PageInstance.ShouldDespawn(map))
                 {
                     X = PageInstance.X;
                     Y = PageInstance.Y;
+                    if (PageInstance.GlobalClone != null)
+                    {
+                        Player.GlobalPageInstanceLookup.TryRemove(PageInstance.GlobalClone, out Event val);
+                    }
                     PageInstance = null;
                     CallStack.Clear();
                     PlayerHasDied = false;
@@ -116,6 +123,14 @@ namespace Intersect.Server.Entities.Events
                     if (CallStack.Count > 0)
                     {
                         var curStack = CallStack.Peek();
+                        if (curStack == null)
+                        {
+                            Log.Error("Curstack variable in event update is null.. not sure how nor how to recover so just gonna let this crash now..");
+                        }
+                        if (Player == null)
+                        {
+                            Log.Error("Player variable in event update is null.. not sure how nor how to recover so just gonna let this crash now..");
+                        }
                         if (curStack.WaitingForResponse == CommandInstance.EventResponse.Shop && Player.InShop == null)
                         {
                             curStack.WaitingForResponse = CommandInstance.EventResponse.None;
@@ -139,14 +154,14 @@ namespace Intersect.Server.Entities.Events
                         }
 
                         if (curStack.WaitingForResponse == CommandInstance.EventResponse.Timer &&
-                            WaitTimer < Globals.Timing.TimeMs)
+                            WaitTimer < Globals.Timing.Milliseconds)
                         {
                             curStack.WaitingForResponse = CommandInstance.EventResponse.None;
                         }
 
                         var commandsExecuted = 0;
-                        while (curStack.WaitingForResponse == CommandInstance.EventResponse.None &&
-                               !PageInstance.ShouldDespawn() &&
+                        while (curStack != null && curStack.WaitingForResponse == CommandInstance.EventResponse.None &&
+                               !(PageInstance?.ShouldDespawn(map) ?? false) &&
                                commandsExecuted < Options.EventWatchdogKillThreshhold)
                         {
                             if (curStack.WaitingForRoute != Guid.Empty)
@@ -154,7 +169,7 @@ namespace Intersect.Server.Entities.Events
                                 if (curStack.WaitingForRoute == Player.Id)
                                 {
                                     if (Player.MoveRoute == null ||
-                                        Player.MoveRoute.Complete && Player.MoveTimer < Globals.Timing.TimeMs)
+                                        Player.MoveRoute.Complete && Player.MoveTimer < Globals.Timing.Milliseconds)
                                     {
                                         curStack.WaitingForRoute = Guid.Empty;
                                         curStack.WaitingForRouteMap = Guid.Empty;
@@ -199,7 +214,7 @@ namespace Intersect.Server.Entities.Events
                                 }
                                 else
                                 {
-                                    if (WaitTimer < Globals.Timing.TimeMs)
+                                    if (WaitTimer < Globals.Timing.Milliseconds)
                                     {
                                         CommandProcessing.ProcessCommand(curStack.Command, Player, this);
                                         commandsExecuted++;
@@ -230,19 +245,18 @@ namespace Intersect.Server.Entities.Events
                                 if (Player.Power.IsModerator)
                                 {
                                     PacketSender.SendChatMsg(
-                                        Player, Strings.Events.watchdogkillcommon.ToString(BaseEvent.Name), Color.Red
+                                        Player, Strings.Events.watchdogkillcommon.ToString(BaseEvent.Name), ChatMessageType.Error, Color.Red
                                     );
                                 }
                             }
                             else
                             {
-                                var map = MapInstance.Get(this.BaseEvent.MapId);
                                 Log.Error(Strings.Events.watchdogkill.ToString(map.Name, BaseEvent.Name));
                                 if (Player.Power.IsModerator)
                                 {
                                     PacketSender.SendChatMsg(
                                         Player, Strings.Events.watchdogkill.ToString(map.Name, BaseEvent.Name),
-                                        Color.Red
+                                        ChatMessageType.Error, Color.Red
                                     );
                                 }
                             }
@@ -250,7 +264,7 @@ namespace Intersect.Server.Entities.Events
                     }
                     else
                     {
-                        if (PageInstance.Trigger == EventTrigger.Autorun && WaitTimer < Globals.Timing.TimeMs)
+                        if (PageInstance.Trigger == EventTrigger.Autorun && WaitTimer < Globals.Timing.Milliseconds)
                         {
                             var newStack = new CommandInstance(PageInstance.MyPage);
                             CallStack.Push(newStack);
@@ -268,12 +282,18 @@ namespace Intersect.Server.Entities.Events
                     {
                         if (Global)
                         {
-                            if (MapInstance.Get(MapId).GetGlobalEventInstance(BaseEvent) != null)
+                            var globalEvent = MapInstance.Get(MapId).GetGlobalEventInstance(BaseEvent);
+                            if (globalEvent != null)
                             {
                                 PageInstance = new EventPageInstance(
                                     BaseEvent, BaseEvent.Pages[i], BaseEvent.Id, MapId, this, Player,
-                                    MapInstance.Get(MapId).GetGlobalEventInstance(BaseEvent).GlobalPageInstance[i]
+                                    globalEvent.GlobalPageInstance[i]
                                 );
+
+                                if (PageInstance.GlobalClone != null)
+                                {
+                                    Player.GlobalPageInstanceLookup.AddOrUpdate(globalEvent.GlobalPageInstance[i], this, (key, oldValue) => this);
+                                }
 
                                 sendLeave = false;
                                 PageIndex = i;

@@ -1,5 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Drawing;
+using System.Drawing.Imaging;
+using System.Linq;
 using System.Windows.Forms;
 
 using DarkUI.Forms;
@@ -25,16 +28,36 @@ namespace Intersect.Editor.Forms.Editors
 
         private ItemBase mEditorItem;
 
-        private List<string> mExpandedFolders = new List<string>();
-
         private List<string> mKnownFolders = new List<string>();
+
+        private List<string> mKnownCooldownGroups = new List<string>();
 
         public FrmItem()
         {
             ApplyHooks();
             InitializeComponent();
-            lstItems.LostFocus += itemList_FocusChanged;
-            lstItems.GotFocus += itemList_FocusChanged;
+
+            cmbEquipmentSlot.Items.Clear();
+            cmbEquipmentSlot.Items.AddRange(Options.EquipmentSlots.ToArray());
+            cmbToolType.Items.Clear();
+            cmbToolType.Items.Add(Strings.General.none);
+            cmbToolType.Items.AddRange(Options.ToolTypes.ToArray());
+            cmbEquipmentBonus.Items.Clear();
+            for (var i = 0; i < Strings.ItemEditor.bonuseffects.Count; i++)
+            {
+                cmbEquipmentBonus.Items.Add(Strings.ItemEditor.bonuseffects[i]);
+            }
+
+            cmbProjectile.Items.Clear();
+            cmbProjectile.Items.Add(Strings.General.none);
+            cmbProjectile.Items.AddRange(ProjectileBase.Names);
+
+            lstGameObjects.Init(UpdateToolStripItems, AssignEditorItem, toolStripItemNew_Click, toolStripItemCopy_Click, toolStripItemUndo_Click, toolStripItemPaste_Click, toolStripItemDelete_Click);
+        }
+        private void AssignEditorItem(Guid id)
+        {
+            mEditorItem = ItemBase.Get(id);
+            UpdateEditor();
         }
 
         protected override void GameObjectUpdatedDelegate(GameObjectType type)
@@ -96,7 +119,7 @@ namespace Intersect.Editor.Forms.Editors
             cmbAttackAnimation.Items.Add(Strings.General.none);
             cmbAttackAnimation.Items.AddRange(AnimationBase.Names);
             cmbScalingStat.Items.Clear();
-            for (var x = 0; x < Options.MaxStats; x++)
+            for (var x = 0; x < (int)Stats.StatCount; x++)
             {
                 cmbScalingStat.Items.Add(Globals.GetStatName(x));
             }
@@ -163,6 +186,10 @@ namespace Intersect.Editor.Forms.Editors
 
             lblDesc.Text = Strings.ItemEditor.description;
             lblPic.Text = Strings.ItemEditor.picture;
+            lblRed.Text = Strings.ItemEditor.Red;
+            lblGreen.Text = Strings.ItemEditor.Green;
+            lblBlue.Text = Strings.ItemEditor.Blue;
+            lblAlpha.Text = Strings.ItemEditor.Alpha;
             lblPrice.Text = Strings.ItemEditor.price;
             lblAnim.Text = Strings.ItemEditor.animation;
             chkBound.Text = Strings.ItemEditor.bound;
@@ -212,6 +239,9 @@ namespace Intersect.Editor.Forms.Editors
             lblToolType.Text = Strings.ItemEditor.tooltype;
 
             lblCooldown.Text = Strings.ItemEditor.cooldown;
+            lblCooldownGroup.Text = Strings.ItemEditor.CooldownGroup;
+            chkIgnoreGlobalCooldown.Text = Strings.ItemEditor.IgnoreGlobalCooldown;
+            chkIgnoreCdr.Text = Strings.ItemEditor.IgnoreCooldownReduction;
 
             grpVitalBonuses.Text = Strings.ItemEditor.vitalbonuses;
             lblHealthBonus.Text = Strings.ItemEditor.health;
@@ -240,9 +270,10 @@ namespace Intersect.Editor.Forms.Editors
             grpSpell.Text = Strings.ItemEditor.spellpanel;
             lblSpell.Text = Strings.ItemEditor.spell;
             chkQuickCast.Text = Strings.ItemEditor.quickcast;
-            chkDestroy.Text = Strings.ItemEditor.destroyspell;
+            chkSingleUseSpell.Text = Strings.ItemEditor.destroyspell;
 
             grpEvent.Text = Strings.ItemEditor.eventpanel;
+            chkSingleUseEvent.Text = Strings.ItemEditor.SingleUseEvent;
 
             grpConsumable.Text = Strings.ItemEditor.consumeablepanel;
             lblVital.Text = Strings.ItemEditor.vital;
@@ -275,6 +306,10 @@ namespace Intersect.Editor.Forms.Editors
                 txtDesc.Text = mEditorItem.Description;
                 cmbType.SelectedIndex = (int) mEditorItem.ItemType;
                 cmbPic.SelectedIndex = cmbPic.FindString(TextUtils.NullToNone(mEditorItem.Icon));
+                nudRgbaR.Value = mEditorItem.Color.R;
+                nudRgbaG.Value = mEditorItem.Color.G;
+                nudRgbaB.Value = mEditorItem.Color.B;
+                nudRgbaA.Value = mEditorItem.Color.A;
                 cmbEquipmentAnimation.SelectedIndex = AnimationBase.ListIndex(mEditorItem.EquipmentAnimationId) + 1;
                 nudPrice.Value = mEditorItem.Price;
                 cmbRarity.SelectedIndex = mEditorItem.Rarity;
@@ -334,23 +369,21 @@ namespace Intersect.Editor.Forms.Editors
                 picItem.BackgroundImage = null;
                 if (cmbPic.SelectedIndex > 0)
                 {
-                    picItem.BackgroundImage = System.Drawing.Image.FromFile("resources/items/" + cmbPic.Text);
+                    DrawItemIcon();
                 }
 
                 picMalePaperdoll.BackgroundImage?.Dispose();
                 picMalePaperdoll.BackgroundImage = null;
                 if (cmbMalePaperdoll.SelectedIndex > 0)
                 {
-                    picMalePaperdoll.BackgroundImage =
-                        System.Drawing.Image.FromFile("resources/paperdolls/" + cmbMalePaperdoll.Text);
+                    DrawItemPaperdoll(Gender.Male);
                 }
 
                 picFemalePaperdoll.BackgroundImage?.Dispose();
                 picFemalePaperdoll.BackgroundImage = null;
                 if (cmbFemalePaperdoll.SelectedIndex > 0)
                 {
-                    picFemalePaperdoll.BackgroundImage =
-                        System.Drawing.Image.FromFile("resources/paperdolls/" + cmbFemalePaperdoll.Text);
+                    DrawItemPaperdoll(Gender.Female);
                 }
 
                 cmbDamageType.SelectedIndex = mEditorItem.DamageType;
@@ -361,6 +394,9 @@ namespace Intersect.Editor.Forms.Editors
                 cmbAnimation.SelectedIndex = AnimationBase.ListIndex(mEditorItem.AnimationId) + 1;
 
                 nudCooldown.Value = mEditorItem.Cooldown;
+                cmbCooldownGroup.Text = mEditorItem.CooldownGroup;
+                chkIgnoreGlobalCooldown.Checked = mEditorItem.IgnoreGlobalCooldown;
+                chkIgnoreCdr.Checked = mEditorItem.IgnoreCooldownReduction;
 
                 if (mChanged.IndexOf(mEditorItem) == -1)
                 {
@@ -415,12 +451,13 @@ namespace Intersect.Editor.Forms.Editors
             {
                 cmbTeachSpell.SelectedIndex = SpellBase.ListIndex(mEditorItem.SpellId) + 1;
                 chkQuickCast.Checked = mEditorItem.QuickCast;
-                chkDestroy.Checked = mEditorItem.DestroySpell;
+                chkSingleUseSpell.Checked = mEditorItem.SingleUse;
                 grpSpell.Visible = true;
             }
             else if (cmbType.SelectedIndex == (int) ItemTypes.Event)
             {
                 cmbEvent.SelectedIndex = EventBase.ListIndex(mEditorItem.EventId) + 1;
+                chkSingleUseEvent.Checked = mEditorItem.SingleUse;
                 grpEvent.Visible = true;
             }
             else if (cmbType.SelectedIndex == (int) ItemTypes.Equipment)
@@ -472,14 +509,8 @@ namespace Intersect.Editor.Forms.Editors
 
         private void txtName_TextChanged(object sender, EventArgs e)
         {
-            mChangingName = true;
             mEditorItem.Name = txtName.Text;
-            if (lstItems.SelectedNode != null && lstItems.SelectedNode.Tag != null)
-            {
-                lstItems.SelectedNode.Text = txtName.Text;
-            }
-
-            mChangingName = false;
+            lstGameObjects.UpdateText(txtName.Text);
         }
 
         private void cmbPic_SelectedIndexChanged(object sender, EventArgs e)
@@ -489,7 +520,7 @@ namespace Intersect.Editor.Forms.Editors
             picItem.BackgroundImage = null;
             if (cmbPic.SelectedIndex > 0)
             {
-                picItem.BackgroundImage = System.Drawing.Image.FromFile("resources/items/" + cmbPic.Text);
+                DrawItemIcon();
             }
         }
 
@@ -505,8 +536,7 @@ namespace Intersect.Editor.Forms.Editors
             picMalePaperdoll.BackgroundImage = null;
             if (cmbMalePaperdoll.SelectedIndex > 0)
             {
-                picMalePaperdoll.BackgroundImage =
-                    System.Drawing.Image.FromFile("resources/paperdolls/" + cmbMalePaperdoll.Text);
+                DrawItemPaperdoll(Gender.Male);
             }
         }
 
@@ -560,8 +590,7 @@ namespace Intersect.Editor.Forms.Editors
             picFemalePaperdoll.BackgroundImage = null;
             if (cmbFemalePaperdoll.SelectedIndex > 0)
             {
-                picFemalePaperdoll.BackgroundImage =
-                    System.Drawing.Image.FromFile("resources/paperdolls/" + cmbFemalePaperdoll.Text);
+                DrawItemPaperdoll(Gender.Female);
             }
         }
 
@@ -572,7 +601,7 @@ namespace Intersect.Editor.Forms.Editors
 
         private void toolStripItemDelete_Click(object sender, EventArgs e)
         {
-            if (mEditorItem != null && lstItems.Focused)
+            if (mEditorItem != null && lstGameObjects.Focused)
             {
                 if (DarkMessageBox.ShowWarning(
                         Strings.ItemEditor.deleteprompt, Strings.ItemEditor.deletetitle, DarkDialogButton.YesNo,
@@ -587,7 +616,7 @@ namespace Intersect.Editor.Forms.Editors
 
         private void toolStripItemCopy_Click(object sender, EventArgs e)
         {
-            if (mEditorItem != null && lstItems.Focused)
+            if (mEditorItem != null && lstGameObjects.Focused)
             {
                 mCopiedItem = mEditorItem.JsonData;
                 toolStripItemPaste.Enabled = true;
@@ -596,7 +625,7 @@ namespace Intersect.Editor.Forms.Editors
 
         private void toolStripItemPaste_Click(object sender, EventArgs e)
         {
-            if (mEditorItem != null && mCopiedItem != null && lstItems.Focused)
+            if (mEditorItem != null && mCopiedItem != null && lstGameObjects.Focused)
             {
                 mEditorItem.Load(mCopiedItem, true);
                 UpdateEditor();
@@ -619,43 +648,12 @@ namespace Intersect.Editor.Forms.Editors
             }
         }
 
-        private void itemList_KeyDown(object sender, KeyEventArgs e)
-        {
-            if (e.Control)
-            {
-                if (e.KeyCode == Keys.Z)
-                {
-                    toolStripItemUndo_Click(null, null);
-                }
-                else if (e.KeyCode == Keys.V)
-                {
-                    toolStripItemPaste_Click(null, null);
-                }
-                else if (e.KeyCode == Keys.C)
-                {
-                    toolStripItemCopy_Click(null, null);
-                }
-            }
-            else
-            {
-                if (e.KeyCode == Keys.Delete)
-                {
-                    toolStripItemDelete_Click(null, null);
-                }
-            }
-        }
-
         private void UpdateToolStripItems()
         {
-            toolStripItemCopy.Enabled = mEditorItem != null && lstItems.Focused;
-            toolStripItemPaste.Enabled = mEditorItem != null && mCopiedItem != null && lstItems.Focused;
-            toolStripItemDelete.Enabled = mEditorItem != null && lstItems.Focused;
-            toolStripItemUndo.Enabled = mEditorItem != null && lstItems.Focused;
-        }
-
-        private void itemList_FocusChanged(object sender, EventArgs e)
-        {
-            UpdateToolStripItems();
+            toolStripItemCopy.Enabled = mEditorItem != null && lstGameObjects.Focused;
+            toolStripItemPaste.Enabled = mEditorItem != null && mCopiedItem != null && lstGameObjects.Focused;
+            toolStripItemDelete.Enabled = mEditorItem != null && lstGameObjects.Focused;
+            toolStripItemUndo.Enabled = mEditorItem != null && lstGameObjects.Focused;
         }
 
         private void form_KeyDown(object sender, KeyEventArgs e)
@@ -878,9 +876,17 @@ namespace Intersect.Editor.Forms.Editors
             mEditorItem.QuickCast = chkQuickCast.Checked;
         }
 
-        private void chkDestroy_CheckedChanged(object sender, EventArgs e)
+        private void chkSingleUse_CheckedChanged(object sender, EventArgs e)
         {
-            mEditorItem.DestroySpell = chkDestroy.Checked;
+            switch ((ItemTypes)cmbType.SelectedIndex)
+            {
+                case ItemTypes.Spell:
+                    mEditorItem.SingleUse = chkSingleUseSpell.Checked;
+                    break;
+                case ItemTypes.Event:
+                    mEditorItem.SingleUse = chkSingleUseEvent.Checked;
+                    break;
+            }
         }
 
         private void cmbRarity_SelectedIndexChanged(object sender, EventArgs e)
@@ -888,35 +894,179 @@ namespace Intersect.Editor.Forms.Editors
             mEditorItem.Rarity = cmbRarity.SelectedIndex;
         }
 
+        private void cmbCooldownGroup_SelectedIndexChanged(object sender, EventArgs e)
+        {
+            mEditorItem.CooldownGroup = cmbCooldownGroup.Text;
+        }
+
+        private void btnAddCooldownGroup_Click(object sender, EventArgs e)
+        {
+            var cdGroupName = "";
+            var result = DarkInputBox.ShowInformation(
+                Strings.ItemEditor.CooldownGroupPrompt, Strings.ItemEditor.CooldownGroupTitle, ref cdGroupName,
+                DarkDialogButton.OkCancel
+            );
+
+            if (result == DialogResult.OK && !string.IsNullOrEmpty(cdGroupName))
+            {
+                if (!cmbCooldownGroup.Items.Contains(cdGroupName))
+                {
+                    mEditorItem.CooldownGroup = cdGroupName;
+                    mKnownCooldownGroups.Add(cdGroupName);
+                    InitEditor();
+                    cmbCooldownGroup.Text = cdGroupName;
+                }
+            }
+        }
+
+        private void chkIgnoreGlobalCooldown_CheckedChanged(object sender, EventArgs e)
+        {
+            mEditorItem.IgnoreGlobalCooldown = chkIgnoreGlobalCooldown.Checked;
+        }
+
+        private void chkIgnoreCdr_CheckedChanged(object sender, EventArgs e)
+        {
+            mEditorItem.IgnoreCooldownReduction = chkIgnoreCdr.Checked;
+        }
+
+        private void nudRgbaR_ValueChanged(object sender, EventArgs e)
+        {
+            mEditorItem.Color.R = (byte)nudRgbaR.Value;
+            DrawItemIcon();
+            DrawItemPaperdoll(Gender.Male);
+            DrawItemPaperdoll(Gender.Female);
+        }
+
+        private void nudRgbaG_ValueChanged(object sender, EventArgs e)
+        {
+            mEditorItem.Color.G = (byte)nudRgbaG.Value;
+            DrawItemIcon();
+            DrawItemPaperdoll(Gender.Male);
+            DrawItemPaperdoll(Gender.Female);
+        }
+
+        private void nudRgbaB_ValueChanged(object sender, EventArgs e)
+        {
+            mEditorItem.Color.B = (byte)nudRgbaB.Value;
+            DrawItemIcon();
+            DrawItemPaperdoll(Gender.Male);
+            DrawItemPaperdoll(Gender.Female);
+        }
+
+        private void nudRgbaA_ValueChanged(object sender, EventArgs e)
+        {
+            mEditorItem.Color.A = (byte)nudRgbaA.Value;
+            DrawItemIcon();
+            DrawItemPaperdoll(Gender.Male);
+            DrawItemPaperdoll(Gender.Female);
+        }
+
+        /// <summary>
+        /// Draw the item Icon to the form.
+        /// </summary>
+        private void DrawItemIcon()
+        {
+            var picItemBmp = new Bitmap(picItem.Width, picItem.Height);
+            var gfx = Graphics.FromImage(picItemBmp);
+            gfx.FillRectangle(Brushes.Black, new Rectangle(0, 0, picItem.Width, picItem.Height));
+            if (cmbPic.SelectedIndex > 0)
+            {
+                var img = Image.FromFile("resources/items/" + cmbPic.Text);
+                var imgAttributes = new ImageAttributes();
+
+                // Microsoft, what the heck is this crap?
+                imgAttributes.SetColorMatrix(
+                    new ColorMatrix(
+                        new float[][]
+                        {
+                            new float[] { (float)nudRgbaR.Value / 255,  0,  0,  0, 0},  // Modify the red space
+                            new float[] {0, (float)nudRgbaG.Value / 255,  0,  0, 0},    // Modify the green space
+                            new float[] {0,  0, (float)nudRgbaB.Value / 255,  0, 0},    // Modify the blue space
+                            new float[] {0,  0,  0, (float)nudRgbaA.Value / 255, 0},    // Modify the alpha space
+                            new float[] {0, 0, 0, 0, 1}                                 // We're not adding any non-linear changes. Value of 1 at the end is a dummy value!
+                        }
+                    )
+                );
+
+                gfx.DrawImage(
+                    img, new Rectangle(0, 0, img.Width, img.Height),
+                    0, 0, img.Width, img.Height, GraphicsUnit.Pixel, imgAttributes
+                );
+
+                img.Dispose();
+                imgAttributes.Dispose();
+            }
+
+            gfx.Dispose();
+
+            picItem.BackgroundImage = picItemBmp;
+        }
+
+        /// <summary>
+        /// Draw the item Paperdoll to the form for the specified Gender.
+        /// </summary>
+        /// <param name="gender"></param>
+        private void DrawItemPaperdoll(Gender gender)
+        {
+            PictureBox picPaperdoll;
+            ComboBox cmbPaperdoll;
+            switch (gender)
+            {
+                case Gender.Male:
+                    picPaperdoll = picMalePaperdoll;
+                    cmbPaperdoll = cmbMalePaperdoll;
+                    break;
+
+                case Gender.Female:
+                    picPaperdoll = picFemalePaperdoll;
+                    cmbPaperdoll = cmbFemalePaperdoll;
+                    break;
+
+                default:
+                    throw new NotImplementedException();
+            }
+
+            var picItemBmp = new Bitmap(picPaperdoll.Width, picPaperdoll.Height);
+            var gfx = Graphics.FromImage(picItemBmp);
+            gfx.FillRectangle(Brushes.Black, new Rectangle(0, 0, picPaperdoll.Width, picPaperdoll.Height));
+            if (cmbPaperdoll.SelectedIndex > 0)
+            {
+                var img = Image.FromFile("resources/paperdolls/" + cmbPaperdoll.Text);
+                var imgAttributes = new ImageAttributes();
+
+                // Microsoft, what the heck is this crap?
+                imgAttributes.SetColorMatrix(
+                    new ColorMatrix(
+                        new float[][]
+                        {
+                            new float[] { (float)nudRgbaR.Value / 255,  0,  0,  0, 0},  // Modify the red space
+                            new float[] {0, (float)nudRgbaG.Value / 255,  0,  0, 0},    // Modify the green space
+                            new float[] {0,  0, (float)nudRgbaB.Value / 255,  0, 0},    // Modify the blue space
+                            new float[] {0,  0,  0, (float)nudRgbaA.Value / 255, 0},    // Modify the alpha space
+                            new float[] {0, 0, 0, 0, 1}                                 // We're not adding any non-linear changes. Value of 1 at the end is a dummy value!
+                        }
+                    )
+                );
+
+                gfx.DrawImage(
+                    img, new Rectangle(0, 0, img.Width / Options.Instance.Sprites.NormalFrames, img.Height / Options.Instance.Sprites.Directions),
+                    0, 0, img.Width / Options.Instance.Sprites.NormalFrames, img.Height / Options.Instance.Sprites.Directions, GraphicsUnit.Pixel, imgAttributes
+                );
+
+                img.Dispose();
+                imgAttributes.Dispose();
+            }
+
+            gfx.Dispose();
+
+            picPaperdoll.BackgroundImage = picItemBmp;
+        }
+
         #region "Item List - Folders, Searching, Sorting, Etc"
 
         public void InitEditor()
         {
-            var selectedId = Guid.Empty;
-            var folderNodes = new Dictionary<string, TreeNode>();
-            if (lstItems.SelectedNode != null && lstItems.SelectedNode.Tag != null)
-            {
-                selectedId = (Guid) lstItems.SelectedNode.Tag;
-            }
-
-            lstItems.Nodes.Clear();
-
-            cmbEquipmentSlot.Items.Clear();
-            cmbEquipmentSlot.Items.AddRange(Options.EquipmentSlots.ToArray());
-            cmbToolType.Items.Clear();
-            cmbToolType.Items.Add(Strings.General.none);
-            cmbToolType.Items.AddRange(Options.ToolTypes.ToArray());
-            cmbEquipmentBonus.Items.Clear();
-            for (var i = 0; i < Strings.ItemEditor.bonuseffects.Count; i++)
-            {
-                cmbEquipmentBonus.Items.Add(Strings.ItemEditor.bonuseffects[i]);
-            }
-
-            cmbProjectile.Items.Clear();
-            cmbProjectile.Items.Add(Strings.General.none);
-            cmbProjectile.Items.AddRange(ProjectileBase.Names);
-
-            //Collect folders
+            //Collect folders and cooldown groups
             var mFolders = new List<string>();
             foreach (var itm in ItemBase.Lookup)
             {
@@ -929,7 +1079,31 @@ namespace Intersect.Editor.Forms.Editors
                         mKnownFolders.Add(((ItemBase) itm.Value).Folder);
                     }
                 }
+
+                if (!string.IsNullOrWhiteSpace(((ItemBase)itm.Value).CooldownGroup) && 
+                    !mKnownCooldownGroups.Contains(((ItemBase)itm.Value).CooldownGroup))
+                {
+                    mKnownCooldownGroups.Add(((ItemBase)itm.Value).CooldownGroup);    
+                }
             }
+
+            // Do we add spell cooldown groups as well?
+            if (Options.Combat.LinkSpellAndItemCooldowns)
+            {
+                foreach(var itm in SpellBase.Lookup)
+                {
+                    if (!string.IsNullOrWhiteSpace(((SpellBase)itm.Value).CooldownGroup) &&
+                    !mKnownCooldownGroups.Contains(((SpellBase)itm.Value).CooldownGroup))
+                    {
+                        mKnownCooldownGroups.Add(((SpellBase)itm.Value).CooldownGroup);
+                    }
+                }
+            }
+
+            mKnownCooldownGroups.Sort();
+            cmbCooldownGroup.Items.Clear();
+            cmbCooldownGroup.Items.Add(string.Empty);
+            cmbCooldownGroup.Items.AddRange(mKnownCooldownGroups.ToArray());
 
             mFolders.Sort();
             mKnownFolders.Sort();
@@ -937,70 +1111,9 @@ namespace Intersect.Editor.Forms.Editors
             cmbFolder.Items.Add("");
             cmbFolder.Items.AddRange(mKnownFolders.ToArray());
 
-            lstItems.Sorted = !btnChronological.Checked;
-
-            if (!btnChronological.Checked && !CustomSearch())
-            {
-                foreach (var folder in mFolders)
-                {
-                    var node = lstItems.Nodes.Add(folder);
-                    node.ImageIndex = 0;
-                    node.SelectedImageIndex = 0;
-                    folderNodes.Add(folder, node);
-                }
-            }
-
-            foreach (var itm in ItemBase.ItemPairs)
-            {
-                var node = new TreeNode(itm.Value);
-                node.Tag = itm.Key;
-                node.ImageIndex = 1;
-                node.SelectedImageIndex = 1;
-
-                var folder = ItemBase.Get(itm.Key).Folder;
-                if (!string.IsNullOrEmpty(folder) && !btnChronological.Checked && !CustomSearch())
-                {
-                    var folderNode = folderNodes[folder];
-                    folderNode.Nodes.Add(node);
-                    if (itm.Key == selectedId)
-                    {
-                        folderNode.Expand();
-                    }
-                }
-                else
-                {
-                    lstItems.Nodes.Add(node);
-                }
-
-                if (CustomSearch())
-                {
-                    if (!node.Text.ToLower().Contains(txtSearch.Text.ToLower()))
-                    {
-                        node.Remove();
-                    }
-                }
-
-                if (itm.Key == selectedId)
-                {
-                    lstItems.SelectedNode = node;
-                }
-            }
-
-            var selectedNode = lstItems.SelectedNode;
-
-            if (!btnChronological.Checked)
-            {
-                lstItems.Sort();
-            }
-
-            lstItems.SelectedNode = selectedNode;
-            foreach (var node in mExpandedFolders)
-            {
-                if (folderNodes.ContainsKey(node))
-                {
-                    folderNodes[node].Expand();
-                }
-            }
+            var items = ItemBase.Lookup.OrderBy(p => p.Value?.TimeCreated).Select(pair => new KeyValuePair<Guid, KeyValuePair<string, string>>(pair.Key,
+                new KeyValuePair<string, string>(((ItemBase)pair.Value)?.Name ?? Models.DatabaseObject<ItemBase>.Deleted, ((ItemBase)pair.Value)?.Folder ?? ""))).ToArray();
+            lstGameObjects.Repopulate(items, mFolders, btnChronological.Checked, CustomSearch(), txtSearch.Text);
         }
 
         private void btnAddFolder_Click(object sender, EventArgs e)
@@ -1016,73 +1129,11 @@ namespace Intersect.Editor.Forms.Editors
                 if (!cmbFolder.Items.Contains(folderName))
                 {
                     mEditorItem.Folder = folderName;
-                    mExpandedFolders.Add(folderName);
+                    lstGameObjects.UpdateText(folderName);
                     InitEditor();
                     cmbFolder.Text = folderName;
                 }
             }
-        }
-
-        private void lstItems_NodeMouseClick(object sender, TreeNodeMouseClickEventArgs e)
-        {
-            var node = e.Node;
-            if (node != null)
-            {
-                if (e.Button == MouseButtons.Right)
-                {
-                    if (e.Node.Tag != null && e.Node.Tag.GetType() == typeof(Guid))
-                    {
-                        Clipboard.SetText(e.Node.Tag.ToString());
-                    }
-                }
-
-                var hitTest = lstItems.HitTest(e.Location);
-                if (hitTest.Location != TreeViewHitTestLocations.PlusMinus)
-                {
-                    if (node.Nodes.Count > 0)
-                    {
-                        if (node.IsExpanded)
-                        {
-                            node.Collapse();
-                        }
-                        else
-                        {
-                            node.Expand();
-                        }
-                    }
-                }
-
-                if (node.IsExpanded)
-                {
-                    if (!mExpandedFolders.Contains(node.Text))
-                    {
-                        mExpandedFolders.Add(node.Text);
-                    }
-                }
-                else
-                {
-                    if (mExpandedFolders.Contains(node.Text))
-                    {
-                        mExpandedFolders.Remove(node.Text);
-                    }
-                }
-            }
-        }
-
-        private void lstItems_AfterSelect(object sender, TreeViewEventArgs e)
-        {
-            if (mChangingName)
-            {
-                return;
-            }
-
-            if (lstItems.SelectedNode == null || lstItems.SelectedNode.Tag == null)
-            {
-                return;
-            }
-
-            mEditorItem = ItemBase.Get((Guid) lstItems.SelectedNode.Tag);
-            UpdateEditor();
         }
 
         private void cmbFolder_SelectedIndexChanged(object sender, EventArgs e)
@@ -1134,8 +1185,8 @@ namespace Intersect.Editor.Forms.Editors
             }
         }
 
-        #endregion
 
+        #endregion
     }
 
 }

@@ -12,9 +12,7 @@ namespace Intersect.Config
 
         public int Height = 26;
 
-        public int ItemDespawnTime = 15000;
-
-        public int ItemSpawnTime = 15000;
+        public int ItemAttributeRespawnTime = 15000;
 
         public int TileHeight = 32;
 
@@ -23,6 +21,8 @@ namespace Intersect.Config
         public int Width = 32;
 
         public bool ZDimensionVisible;
+
+        public LayerOptions Layers = new LayerOptions();
 
         [OnDeserialized]
         internal void OnDeserializedMethod(StreamingContext context)
